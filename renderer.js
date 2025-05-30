@@ -1,4 +1,23 @@
+const sizePresets = {
+    300: { w: 300, h: 400, scale: 0.08, x: 150, y: 50 },
+    400: { w: 400, h: 500, scale: 0.1, x: 200, y: 60 },
+    500: { w: 500, h: 600, scale: 0.12, x: 250, y: 70 }
+};
+
 const { ipcRenderer } = require('electron');
+ipcRenderer.on('resize-model', (event, width, height) => {
+    // 动态调整PIXI画布
+    if (app && app.renderer) {
+        app.renderer.resize(width, height);
+    }    // 动态调整模型缩放和位置
+    if (model) {
+        let preset = sizePresets[width] || sizePresets[300];
+        model.scale.set(preset.scale);
+        model.x = preset.x;
+        model.y = preset.y;
+        model.anchor.set(0.5, 0); // 改为顶部中心锚点
+    }
+});
 
 // 全局变量
 let app, model, stage;
@@ -81,8 +100,8 @@ function initPIXIApp() {
     
     console.log('PIXI.js 已就绪，开始初始化应用...');    app = new PIXI.Application({
         view: document.getElementById('canvas'),
-        width: 400,
-        height: 500,
+        width: 300,
+        height: 400,
         transparent: true,
         backgroundColor: 0x000000, // 黑色背景
         backgroundAlpha: 0, // 完全透明
@@ -123,16 +142,16 @@ async function loadModel() {
         // 加载模型
         model = await Live2DModel.from(modelUrl);
         console.log('模型加载成功, 宽度:', model.width, '高度:', model.height);
-        
-        // 暴露模型到全局作用域以便调试
+          // 暴露模型到全局作用域以便调试
         window.model = model;
         window.app = app;
-          // 设置模型大小和位置 - 适应新窗口大小
-        const scale = Math.min(400 / model.width, 500 / model.height) * 0.8;
-        model.scale.set(scale);
-        model.x = 200; // 窗口中央
-        model.y = 480; // 接近底部
-        model.anchor.set(0.5, 1);
+        
+        // 设置模型大小和位置 - 使用默认的小号尺寸配置
+        const defaultPreset = sizePresets[300];
+        model.scale.set(defaultPreset.scale);
+        model.x = defaultPreset.x;
+        model.y = defaultPreset.y;
+        model.anchor.set(0.5, 0); // 改为顶部中心锚点，这样模型会从顶部开始显示
         
         // 添加到舞台
         stage.addChild(model);
@@ -141,10 +160,10 @@ async function loadModel() {
             console.log('模型内部结构加载完成');
             // 播放启动欢迎动画
             playStartupAnimation();
-            // 延迟5秒后开始播放待机动画
+            // 延迟三秒后开始播放待机动画
             setTimeout(() => {
                 playIdleAnimation();
-            }, 5000);
+            }, 3000);
         } else {
             console.warn('模型内部结构未加载');
         }
@@ -239,17 +258,74 @@ function playIdleAnimation() {
     }
     
     try {
-        // 先尝试播放第一个可用的动画
-        if (model.motion) {
-            console.log('尝试播放默认动画');
-            model.motion('face_band_normal_01');
-        }
-          // 定期播放随机动画
-        setInterval(() => {
-            if (model && isModelLoaded) {
-                playRandomMotion();
+        // 定义默认动作和对应表情列表
+        const idleActions = [
+            { motion: 'w-normal04-nod', expression: 'face_closeeye_01' },
+            { motion: 'w-normal04-forward', expression: 'face_band_smallmouth_01' },
+            { motion: 'w-normal04-shakehead', expression: 'face_band_wanawana_01' },
+            { motion: 'w-special02-guruguru', expression: 'face_blushed_01' },
+            { motion: 'w-pure12-fidget', expression: 'face_idol_trouble_01' },
+            { motion: 'w-special15-yurayura', expression: 'face_idol_wink_02' }
+        ];
+        
+        let currentActionIndex = 0;
+        
+        // 播放当前动作和表情的函数
+        const playCurrentIdleAction = () => {
+            if (!model || !isModelLoaded) return;
+            
+            const currentAction = idleActions[currentActionIndex];
+            
+            try {
+                console.log(`🎭 播放待机动作: ${currentAction.motion}`);
+                console.log(`😊 播放待机表情: ${currentAction.expression}`);
+                
+                // 播放动作
+                if (model.motion) {
+                    model.motion(currentAction.motion, 0, 2);
+                }
+                
+                // 延迟500ms后播放表情，让动作先开始
+                setTimeout(() => {
+                    if (model && model.internalModel && model.expression) {
+                        model.expression(currentAction.expression);
+                        console.log(`表情切换到: ${currentAction.expression}`);
+                    }
+                }, 500);
+                
+            } catch (error) {
+                console.warn(`播放待机动作失败 ${currentAction.motion}:`, error);
+                // 如果当前动作失败，尝试播放一个备用动画
+                try {
+                    model.motion('face_band_normal_01', 0, 1);
+                    model.expression('face_normal_01');
+                    console.log('播放备用待机动画');
+                } catch (fallbackError) {
+                    console.error('播放备用待机动画也失败:', fallbackError);
+                }
             }
-        }, 8000 + Math.random() * 7000); // 8-15秒随机间隔
+            
+            // 移动到下一个动作
+            currentActionIndex = (currentActionIndex + 1) % idleActions.length;
+        };
+        
+        // 立即播放第一个动作
+        playCurrentIdleAction();
+        
+        // 每10秒切换到下一个动作
+        const idleInterval = setInterval(() => {
+            if (model && isModelLoaded) {
+                playCurrentIdleAction();
+            } else {
+                // 如果模型不再可用，清除定时器
+                clearInterval(idleInterval);
+            }
+        }, 10000); // 10秒间隔
+        
+        // 将定时器ID保存到全局，以便需要时可以清除
+        window.idleAnimationInterval = idleInterval;
+        
+        console.log('待机动画循环已启动，每10秒切换一次动作');
         
     } catch (error) {
         console.warn('播放待机动画失败:', error);
@@ -264,25 +340,45 @@ function playRandomMotion() {
     }
     
     try {
-        // 预定义一些常见的动画名称
-        const commonMotions = [
-            'face_band_normal_01',
+        // 预定义一些用于交互的动画名称（区别于待机动画）
+        const interactionMotions = [
             'face_band_smile_01',
             'face_band_smile_02',
-            'face_band_blushed_01',
             'face_band_wink_01',
-            'face_band_closeeye_01',
+            'face_band_blushed_01',
             'face_smile_01',
             'face_blushed_01',
-            'face_normal_01'
+            'w-happy02-shakehand',
+            'w-happy01-shakehand',
+            'w-cool01-shakehand'
         ];
         
-        // 随机选择一个动画
-        const randomMotion = commonMotions[Math.floor(Math.random() * commonMotions.length)];
+        // 对应的表情
+        const interactionExpressions = [
+            'face_smile_01',
+            'face_smile_02',
+            'face_smile_03',
+            'face_blushed_01',
+            'face_idol_smile_01',
+            'face_idol_blushed_01',
+            'face_idol_wink_02'
+        ];
+        
+        // 随机选择一个交互动画
+        const randomMotion = interactionMotions[Math.floor(Math.random() * interactionMotions.length)];
+        const randomExpression = interactionExpressions[Math.floor(Math.random() * interactionExpressions.length)];
         
         if (model.motion) {
-            model.motion(randomMotion);
-            console.log('播放随机动画:', randomMotion);
+            model.motion(randomMotion, 0, 3); // 优先级3，确保能播放
+            console.log('播放交互动画:', randomMotion);
+            
+            // 延迟300ms后播放表情
+            setTimeout(() => {
+                if (model && model.internalModel && model.expression) {
+                    model.expression(randomExpression);
+                    console.log('播放交互表情:', randomExpression);
+                }
+            }, 300);
         } else {
             console.warn('模型motion方法不可用');
         }
@@ -334,29 +430,60 @@ function showContextMenu(x, y) {
         existingMenu.remove();
     }
     
+    // 计算菜单位置 - 右上角展开
+    const menuWidth = 150;
+    const menuHeight = 240; // 菜单大致高度
+    const offsetX = 10; // 向右偏移
+    const offsetY = -menuHeight - 10; // 向上偏移整个菜单高度
+    
+    const menuX = x + offsetX;
+    const menuY = y + offsetY;
+    
     // 创建菜单
     const menu = document.createElement('div');
-    menu.className = 'context-menu';
-    menu.style.cssText = `
+    menu.className = 'context-menu';    menu.style.cssText = `
         position: fixed;
-        left: ${x}px;
-        top: ${y}px;
-        background: rgba(0, 0, 0, 0.8);
+        left: ${menuX}px;
+        top: ${menuY}px;
+        background: rgba(30, 30, 30, 0.95) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 8px;
         padding: 8px 0;
-        min-width: 150px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        min-width: ${menuWidth}px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         z-index: 1000;
         font-family: 'Microsoft YaHei', Arial, sans-serif;
         font-size: 14px;
-        color: white;
+        color: white !important;
         -webkit-app-region: no-drag;
-    `;      const menuItems = [
+        transform-origin: bottom left;
+        animation: menuSlideInFromTopRight 0.2s ease-out;
+    `;
+    
+    // 添加动画样式
+    if (!document.querySelector('#menu-animation-style')) {
+        const style = document.createElement('style');
+        style.id = 'menu-animation-style';
+        style.textContent = `
+            @keyframes menuSlideInFromTopRight {
+                from {
+                    opacity: 0;
+                    transform: scale(0.8) translate(-15px, 15px);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1) translate(0, 0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }const menuItems = [
         { text: '🎭 播放随机动画', action: () => playRandomMotion() },
         { text: '🎉 播放欢迎动画', action: () => playStartupAnimation() },
+        { text: '📏 调整模型大小', action: () => showResizeSubMenu(x, y) },
         { text: '📌 切换置顶', action: () => toggleAlwaysOnTop() },
         { text: '➖ 最小化', action: () => ipcRenderer.invoke('minimize-app') },
-        { text: '🔄 重载应用', action: () => location.reload() },
         { text: '❌ 关闭应用', action: () => ipcRenderer.invoke('close-app') }
     ];
     
@@ -388,6 +515,74 @@ function showContextMenu(x, y) {
         document.addEventListener('click', function closeMenu(e) {
             if (!menu.contains(e.target)) {
                 menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 100);
+}
+
+// 新增：显示调整模型大小的子菜单
+function showResizeSubMenu(x, y) {
+    // 移除现有菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) existingMenu.remove();
+    
+    // 计算子菜单位置 - 右上角展开
+    const subMenuWidth = 180;
+    const subMenuHeight = 120; // 子菜单大致高度（3个选项）
+    const offsetX = 15; // 向右偏移更多，避免重叠
+    const offsetY = -subMenuHeight - 15; // 向上偏移整个子菜单高度
+    
+    const subMenuX = x + offsetX;
+    const subMenuY = y + offsetY;
+    
+    // 创建子菜单
+    const subMenu = document.createElement('div');
+    subMenu.className = 'context-menu';    subMenu.style.cssText = `
+        position: fixed;
+        left: ${subMenuX}px;
+        top: ${subMenuY}px;
+        background: rgba(25, 25, 25, 0.96) !important;
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 8px 0;
+        min-width: ${subMenuWidth}px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        z-index: 1001;
+        font-family: 'Microsoft YaHei', Arial, sans-serif;
+        font-size: 15px;
+        color: white !important;
+        -webkit-app-region: no-drag;
+        transform-origin: bottom left;
+        animation: menuSlideInFromTopRight 0.2s ease-out;
+    `;
+    const sizes = [
+        { label: '小号（300×400）', w: 300, h: 400 },
+        { label: '中号（400×500）', w: 400, h: 500 },
+        { label: '大号（500×600）', w: 500, h: 600 }
+    ];
+    sizes.forEach(size => {
+        const item = document.createElement('div');
+        item.textContent = size.label;
+        item.style.cssText = `padding: 8px 20px; cursor: pointer; transition: background 0.2s;`;
+        item.addEventListener('mouseenter', () => {
+            item.style.background = 'rgba(100, 149, 237, 0.3)';
+        });
+        item.addEventListener('mouseleave', () => {
+            item.style.background = 'transparent';
+        });
+        item.addEventListener('click', () => {
+            ipcRenderer.invoke('resize-app-window', size.w, size.h);
+            subMenu.remove();
+        });
+        subMenu.appendChild(item);
+    });
+    document.body.appendChild(subMenu);
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!subMenu.contains(e.target)) {
+                subMenu.remove();
                 document.removeEventListener('click', closeMenu);
             }
         });

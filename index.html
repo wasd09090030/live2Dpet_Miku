@@ -39,7 +39,7 @@
             background: transparent !important;
             background-color: transparent !important;
             -webkit-app-region: no-drag; /* 画布区域不可拖拽，用于模型交互 */
-        }/* 隐藏所有UI元素，只保留模型 */
+        }        /* 隐藏所有UI元素，只保留模型 */
         .drag-hint,
         .drag-area-left,
         .drag-area-right,
@@ -48,6 +48,30 @@
         .status-bar,
         .version-info {
             display: none !important;
+        }
+        
+        /* 右键菜单专用样式 - 覆盖透明背景 */
+        .context-menu {
+            background: rgba(30, 30, 30, 0.95) !important;
+            backdrop-filter: blur(10px) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: white !important;
+        }
+        
+        .context-menu * {
+            background: transparent !important;
+            background-color: transparent !important;
+        }
+        
+        /* Toast提示样式 */
+        .toast {
+            background: rgba(0, 0, 0, 0.9) !important;
+            color: white !important;
+        }
+        
+        .toast * {
+            background: transparent !important;
+            background-color: transparent !important;
         }
     </style>
 </head>

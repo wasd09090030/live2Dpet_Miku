@@ -113,3 +113,16 @@ ipcMain.handle('get-window-info', () => {
     isMinimized: mainWindow.isMinimized()
   };
 });
+
+ipcMain.handle('resize-app-window', (event, width, height) => {
+  // 只调整窗口大小和位置
+  if (mainWindow) {
+    // 右侧对齐，底部对齐
+    const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+    const windowX = screenWidth - width - 20;
+    const windowY = screenHeight - height + 80;
+    mainWindow.setBounds({ width, height, x: windowX, y: windowY });
+    // 通知渲染进程调整PIXI和模型
+    mainWindow.webContents.send('resize-model', width, height);
+  }
+});
