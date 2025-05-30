@@ -1,0 +1,39 @@
+{
+  "window": {
+    "width": 300,
+    "height": 400,
+    "defaultX": -320,
+    "defaultY": -420,
+    "alwaysOnTop": true,
+    "transparent": true,
+    "frame": false
+  },
+  "model": {
+    "path": "./Model/21miku_normal_3.0_f_t03/21miku_normal_3.0_f_t03.model3.json",
+    "scale": 0.8,
+    "position": {
+      "x": 150,
+      "y": 350,
+      "anchorX": 0.5,
+      "anchorY": 1
+    }
+  },
+  "animation": {
+    "idleInterval": {
+      "min": 8000,
+      "max": 15000
+    },
+    "motions": [
+      "face_band_normal_01",
+      "face_band_smile_01",
+      "face_band_smile_02",
+      "face_band_blushed_01",
+      "face_band_wink_01",
+      "face_band_closeeye_01"
+    ]
+  },
+  "debug": {
+    "showConsole": true,
+    "logLevel": "info"
+  }
+}
