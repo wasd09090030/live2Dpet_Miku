@@ -42,9 +42,9 @@ npm start
 ## 核心特性
 
 ### 🎭 动画系统
-- **启动欢迎**: 随机握手动作 + 微笑表情 (70% 速度)
-- **待机循环**: 每12秒自动播放待机动画 (60% 速度)  
-- **交互响应**: 点击触发随机动画 + Toast 提示 (80% 速度)
+- **启动欢迎**: 动作 + 微笑
+- **待机循环**: 每12秒自动播放待机动画 
+- **交互响应**: 点击触发随机动画 + Toast 提示
 
 ### 📝 TodoList 功能
 - **时间管理**: 添加待办事项和提醒时间
@@ -59,9 +59,8 @@ npm start
   - 📌 切换置顶状态
   - ➖ 最小化 / ❌ 关闭应用
 - **视线跟随**: 鼠标移动时模型视线跟随
-- **窗口拖拽**: 透明窗口可拖拽移动
 
-## 技术栈
+## 使用的框架
 
 - **Electron** - 跨平台桌面应用
 - **PIXI.js 6.x** - 2D 渲染引擎  
@@ -72,32 +71,20 @@ npm start
 
 ### 核心文件
 - `renderer.js` - Live2D 渲染、动画控制、交互处理
-- `todolist.js` - 待办事项逻辑 (已提取CSS到独立文件)
-- `todolist.css` - 待办事项样式 (280行+，使用 !important 确保样式优先级)
+- `todolist.js` - 待办事项逻辑 
+- `todolist.css` - 待办事项样式 
 
-### 添加新动画
-```javascript
-// 在 playRandomMotion() 中添加新动画
-const newMotions = ['w-new-motion-name'];
-const newExpressions = ['face_new_expression'];
-const newToastMessages = ['新的提示信息'];
-```
+## PS
 
-### 自定义模型
-替换 `Model/` 目录下的模型文件，并修改 `renderer.js` 中的模型路径。
 
-## 许可证
+*本来想做ena酱的桌宠，但是一想到后续要添加语言面临无语音可添加就会很尴尬。等后续如果PJSK出现解包语音了会立即着手做的。*
 
-MIT License
+### 后续的想法：
 
-## 贡献
+-**添加部分语音。**
 
-欢迎提交 Issue 和 Pull Request！
+-**做一个界面进行和调教好的Deepseek API模型的通信聊天。**
 
-## 许可证
+-**文本转语音**
 
-MIT License
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
+等有空了再做吧。
