@@ -32,6 +32,9 @@ async function init() {
     try {
         console.log('开始初始化Live2D应用...');
         
+        // 显示随机加载GIF动画
+        showLoadingGif();
+        
         // 强制设置透明背景
         document.body.style.background = 'transparent';
         document.body.style.backgroundColor = 'transparent';
@@ -43,30 +46,37 @@ async function init() {
         
         // 等待Live2D Cubism Core加载
         await waitForCubismCore();
-        
-        // 初始化PIXI应用（PIXI.js已通过script标签加载）
+          // 初始化PIXI应用（PIXI.js已通过script标签加载）
         document.getElementById('loading').textContent = '正在初始化PIXI应用...';
         initPIXIApp();
         
-        document.getElementById('loading').textContent = '正在加载Live2D模型...';
-        // 加载Live2D模型
-        await loadModel();
-          // 设置交互
-        setupInteraction();
+        // 初始隐藏canvas画布，等GIF播放完毕后再显示
+        const canvas = document.getElementById('canvas');
+        if (canvas) {
+            canvas.style.opacity = '0';
+            canvas.style.transition = 'opacity 0.5s ease-in';
+        }
         
-        // 设置键盘快捷键
-        setupKeyboardShortcuts();
+        document.getElementById('loading').textContent = '正在加载Live2D模型...';// 加载Live2D模型
+        await loadModel();
+        
+        // 设置交互
+        setupInteraction();
         
         // 隐藏加载提示
         document.getElementById('loading').style.display = 'none';
         
-        console.log('Live2D应用初始化完成');
-        updateStatusBar('🎉 应用就绪 - 右键菜单或快捷键操作');
+        // 注意：GIF隐藏和启动动画播放现在由 loadModel() 函数内部控制时序
         
-    } catch (error) {
+        console.log('Live2D应用初始化完成');
+        updateStatusBar('🎉 应用就绪 - 右键菜单操作');
+          } catch (error) {
         console.error('初始化失败:', error);
         document.getElementById('loading').textContent = '加载失败: ' + error.message;
         document.getElementById('loading').style.color = '#ff0000';
+        
+        // 错误时也要隐藏GIF动画（会自动处理延时）
+        hideLoadingGif();
     }
 }
 
@@ -98,10 +108,17 @@ function initPIXIApp() {
         throw new Error('PIXI.js 未加载或加载失败');
     }
     
-    console.log('PIXI.js 已就绪，开始初始化应用...');    app = new PIXI.Application({
+    console.log('PIXI.js 已就绪，开始初始化应用...');
+    
+    // 获取当前窗口的实际尺寸，而不是硬编码
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    console.log(`使用窗口尺寸: ${windowWidth}×${windowHeight}`);
+    
+    app = new PIXI.Application({
         view: document.getElementById('canvas'),
-        width: 300,
-        height: 400,
+        width: windowWidth,
+        height: windowHeight,
         transparent: true,
         backgroundColor: 0x000000, // 黑色背景
         backgroundAlpha: 0, // 完全透明
@@ -141,29 +158,69 @@ async function loadModel() {
         
         // 加载模型
         model = await Live2DModel.from(modelUrl);
-        console.log('模型加载成功, 宽度:', model.width, '高度:', model.height);
-          // 暴露模型到全局作用域以便调试
+        console.log('模型加载成功, 宽度:', model.width, '高度:', model.height);        // 暴露模型到全局作用域以便调试
         window.model = model;
         window.app = app;
         
-        // 设置模型大小和位置 - 使用默认的小号尺寸配置
-        const defaultPreset = sizePresets[300];
-        model.scale.set(defaultPreset.scale);
-        model.x = defaultPreset.x;
-        model.y = defaultPreset.y;
-        model.anchor.set(0.5, 0); // 改为顶部中心锚点，这样模型会从顶部开始显示
+        // 根据当前窗口尺寸选择合适的预设配置
+        const windowWidth = window.innerWidth;
+        let selectedPreset;
+        if (windowWidth >= 500) {
+            selectedPreset = sizePresets[500];
+        } else if (windowWidth >= 400) {
+            selectedPreset = sizePresets[400];
+        } else {
+            selectedPreset = sizePresets[300];
+        }
         
-        // 添加到舞台
+        console.log(`窗口宽度: ${windowWidth}px，使用预设配置:`, selectedPreset);
+        
+        // 设置模型大小和位置
+        model.scale.set(selectedPreset.scale);
+        model.x = selectedPreset.x;
+        model.y = selectedPreset.y;
+        model.anchor.set(0.5, 0); // 改为顶部中心锚点，这样模型会从顶部开始显示// 添加到舞台
         stage.addChild(model);
-          // 启动模型动画
+        
+        // 初始隐藏模型，等GIF播放完毕后再显示
+        model.visible = false;
+        console.log('模型已添加到舞台但暂时隐藏，等待GIF播放完毕');
+        
+        // 启动模型动画 - 使用回调机制确保在GIF完全隐藏后再播放
         if (model.internalModel) {
             console.log('模型内部结构加载完成');
-            // 播放启动欢迎动画
-            playStartupAnimation();
-            // 延迟三秒后开始播放待机动画
-            setTimeout(() => {
-                playIdleAnimation();
-            }, 3000);
+              // 使用回调机制确保启动动画在GIF完全隐藏后才播放
+            hideLoadingGif(() => {
+                console.log('GIF已完全隐藏，现在显示模型并开始播放启动动画');
+                
+                // 先显示canvas画布
+                const canvas = document.getElementById('canvas');
+                if (canvas) {
+                    canvas.style.opacity = '1';
+                }
+                
+                // 显示模型（可以添加渐入效果）
+                model.visible = true;
+                model.alpha = 0; // 从透明开始
+                
+                // 模型渐入效果
+                const fadeInModel = () => {
+                    if (model.alpha < 1) {
+                        model.alpha += 0.05; // 每帧增加透明度
+                        requestAnimationFrame(fadeInModel);
+                    } else {
+                        model.alpha = 1; // 确保完全不透明
+                        // 模型完全显示后播放启动动画
+                        playStartupAnimation();
+                    }
+                };
+                fadeInModel();
+                
+                // 启动动画播放3秒后开始待机动画
+                setTimeout(() => {
+                    playIdleAnimation();
+                }, 3000);
+            });
         } else {
             console.warn('模型内部结构未加载');
         }
@@ -210,23 +267,28 @@ function playStartupAnimation() {
         
         // 随机选择微笑表情  
         const randomSmile = smileExpressions[Math.floor(Math.random() * smileExpressions.length)];
-        
-        console.log(`🎉 启动欢迎！播放握手动作: ${randomShakehand}`);
+          console.log(`🎉 启动欢迎！播放握手动作: ${randomShakehand}`);
         console.log(`😊 启动欢迎！播放微笑表情: ${randomSmile}`);
         
-        // 先播放握手动作（优先级3，确保播放）
-        model.motion(randomShakehand, 0, 3);
+        // 播放握手动作，添加更长的淡入淡出时间和更慢的播放速度
+        if (model.motion) {
+            const motionState = model.motion(randomShakehand, 0, 3);
+            // 设置动画播放速度为0.7倍（更慢）
+            if (motionState) {
+                motionState.speed = 0.7;
+            }
+        }
         
-        // 延迟800ms后播放微笑表情，让握手动作先完成一部分
+        // 延迟1200ms后播放微笑表情，让握手动作先完成更多部分
         setTimeout(() => {
             if (model && model.internalModel) {
                 model.expression(randomSmile);
                 console.log(`表情切换到: ${randomSmile}`);
             }
-        }, 800);
+        }, 1200);
         
         // 显示欢迎提示
-        showToast(`🎉 欢迎回来！初音未来为您问好~`);
+        showToast(`🎉 你好吖！~`);
         
         // 2.5秒后恢复正常表情，为切换到待机状态做准备
         setTimeout(() => {
@@ -279,19 +341,22 @@ function playIdleAnimation() {
             try {
                 console.log(`🎭 播放待机动作: ${currentAction.motion}`);
                 console.log(`😊 播放待机表情: ${currentAction.expression}`);
-                
-                // 播放动作
+                  // 播放动作，设置慢速播放
                 if (model.motion) {
-                    model.motion(currentAction.motion, 0, 2);
+                    const motionState = model.motion(currentAction.motion, 0, 2);
+                    // 设置待机动画播放速度为0.6倍（更慢更自然）
+                    if (motionState) {
+                        motionState.speed = 0.6;
+                    }
                 }
                 
-                // 延迟500ms后播放表情，让动作先开始
+                // 延迟800ms后播放表情，让动作先开始更长时间
                 setTimeout(() => {
                     if (model && model.internalModel && model.expression) {
                         model.expression(currentAction.expression);
                         console.log(`表情切换到: ${currentAction.expression}`);
                     }
-                }, 500);
+                }, 800);
                 
             } catch (error) {
                 console.warn(`播放待机动作失败 ${currentAction.motion}:`, error);
@@ -311,8 +376,7 @@ function playIdleAnimation() {
         
         // 立即播放第一个动作
         playCurrentIdleAction();
-        
-        // 每10秒切换到下一个动作
+          // 每12秒切换到下一个动作（更长间隔让动画更舒缓）
         const idleInterval = setInterval(() => {
             if (model && isModelLoaded) {
                 playCurrentIdleAction();
@@ -320,12 +384,12 @@ function playIdleAnimation() {
                 // 如果模型不再可用，清除定时器
                 clearInterval(idleInterval);
             }
-        }, 10000); // 10秒间隔
+        }, 12000); // 12秒间隔
         
         // 将定时器ID保存到全局，以便需要时可以清除
         window.idleAnimationInterval = idleInterval;
         
-        console.log('待机动画循环已启动，每10秒切换一次动作');
+        console.log('待机动画循环已启动，每12秒切换一次动作');
         
     } catch (error) {
         console.warn('播放待机动画失败:', error);
@@ -338,19 +402,20 @@ function playRandomMotion() {
         console.warn('模型未准备好');
         return;
     }
-    
-    try {
-        // 预定义一些用于交互的动画名称（区别于待机动画）
+      try {        // 预定义一些用于交互的动画名称（区别于待机动画）
         const interactionMotions = [
-            'face_band_smile_01',
-            'face_band_smile_02',
-            'face_band_wink_01',
-            'face_band_blushed_01',
-            'face_smile_01',
-            'face_blushed_01',
+            'w-adult01-pose',       // 替换：成熟姿势动作
+            'w-adult02-glad',       // 替换：开心动作
+            'w-adult01-blushed',    // 替换：脸红动作
+            'w-adult02-blushed',    // 替换：另一种脸红动作
+            'w-adult01-nod',        // 替换：点头动作
+            'w-adult02-nod',        // 替换：另一种点头动作
             'w-happy02-shakehand',
             'w-happy01-shakehand',
-            'w-cool01-shakehand'
+            'w-cool01-shakehand',
+            'w-cute01-sleep05B',   // 新增：可爱睡觉动作
+            'w-cute01-wink04' ,     // 新增：可爱眨眼动作
+            'w-cute11-nbforward'   // 新增：可爱前倾动作
         ];
         
         // 对应的表情
@@ -361,24 +426,55 @@ function playRandomMotion() {
             'face_blushed_01',
             'face_idol_smile_01',
             'face_idol_blushed_01',
-            'face_idol_wink_02'
+            'face_idol_wink_02',
+            'face_closeeye_01',     // 新增：适合睡觉动作的闭眼表情
+            'face_closeeye_02',     // 新增：另一种闭眼表情
+            'face_idol_closeeye_01', // 新增：偶像风格闭眼表情
+            'face_idol_wink_01',    // 新增：适合眨眼动作的表情
+            'face_idol_wink_02',    // 新增：另一种眨眼表情
+            'face_idol_wink_03',     // 新增：第三种眨眼表情
+            'face_surprise_01' // 新增：惊讶表情
         ];
         
-        // 随机选择一个交互动画
-        const randomMotion = interactionMotions[Math.floor(Math.random() * interactionMotions.length)];
+        // 对应的Toast显示文本
+        const toastMessages = [
+            '嗯哼哼~',     // w-adult01-pose
+            '😊 我很开心呢！',        // w-adult02-glad
+            '😳 有点害羞...', // w-adult01-blushed
+            '😊 脸红红的~',          // w-adult02-blushed
+            '有什么事吗？',    // w-adult01-nod
+            '好的好的😖~',          // w-adult02-nod
+            '哈咯哈咯！💕',        // w-happy02-shakehand
+            '🥰 最喜欢你了！💕',          // w-happy01-shakehand
+            '💕💕💕~',         // w-cool01-shakehand
+            '😴 好困呀，要睡觉了...', // w-cute01-sleep05B
+            '😉 嘿嘿~',          // w-cute01-wink04
+            '😳 哇哦，怎么了吗？', // w-cute11-nbforward
+        ];
+          // 随机选择一个交互动画
+        const randomIndex = Math.floor(Math.random() * interactionMotions.length);
+        const randomMotion = interactionMotions[randomIndex];
         const randomExpression = interactionExpressions[Math.floor(Math.random() * interactionExpressions.length)];
+        const toastMessage = toastMessages[randomIndex];
         
         if (model.motion) {
-            model.motion(randomMotion, 0, 3); // 优先级3，确保能播放
+            const motionState = model.motion(randomMotion, 0, 3); // 优先级3，确保能播放
+            // 设置交互动画播放速度为0.8倍（稍慢但响应快）
+            if (motionState) {
+                motionState.speed = 0.8;
+            }
             console.log('播放交互动画:', randomMotion);
             
-            // 延迟300ms后播放表情
+            // 显示对应的Toast消息
+            showToast(toastMessage);
+            
+            // 延迟600ms后播放表情，让动作有更多展示时间
             setTimeout(() => {
                 if (model && model.internalModel && model.expression) {
                     model.expression(randomExpression);
                     console.log('播放交互表情:', randomExpression);
                 }
-            }, 300);
+            }, 600);
         } else {
             console.warn('模型motion方法不可用');
         }
@@ -428,13 +524,11 @@ function showContextMenu(x, y) {
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
         existingMenu.remove();
-    }
-    
-    // 计算菜单位置 - 右上角展开
+    }    // 计算菜单位置 - 直接从鼠标位置向右上角展开
     const menuWidth = 150;
     const menuHeight = 240; // 菜单大致高度
-    const offsetX = 10; // 向右偏移
-    const offsetY = -menuHeight - 10; // 向上偏移整个菜单高度
+    const offsetX = 0; // 无水平偏移，直接从鼠标位置开始
+    const offsetY = 0; // 无垂直偏移，直接从鼠标位置开始
     
     const menuX = x + offsetX;
     const menuY = y + offsetY;
@@ -448,16 +542,15 @@ function showContextMenu(x, y) {
         background: rgba(30, 30, 30, 0.95) !important;
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        padding: 8px 0;
+        border-radius: 6px;
+        padding: 4px 0;
         min-width: ${menuWidth}px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
         z-index: 1000;
-        font-family: 'Microsoft YaHei', Arial, sans-serif;
-        font-size: 14px;
+        font-family: 'Microsoft YaHei', Arial, sans-serif;        font-size: 13px;
         color: white !important;
         -webkit-app-region: no-drag;
-        transform-origin: bottom left;
+        transform-origin: top left;
         animation: menuSlideInFromTopRight 0.2s ease-out;
     `;
     
@@ -477,10 +570,8 @@ function showContextMenu(x, y) {
                 }
             }
         `;
-        document.head.appendChild(style);
-    }const menuItems = [
-        { text: '🎭 播放随机动画', action: () => playRandomMotion() },
-        { text: '🎉 播放欢迎动画', action: () => playStartupAnimation() },
+        document.head.appendChild(style);    }const menuItems = [
+        { text: '📝 待办事项', action: () => todoList.showTodoPanel() },
         { text: '📏 调整模型大小', action: () => showResizeSubMenu(x, y) },
         { text: '📌 切换置顶', action: () => toggleAlwaysOnTop() },
         { text: '➖ 最小化', action: () => ipcRenderer.invoke('minimize-app') },
@@ -489,9 +580,8 @@ function showContextMenu(x, y) {
     
     menuItems.forEach(item => {
         const menuItem = document.createElement('div');
-        menuItem.textContent = item.text;
-        menuItem.style.cssText = `
-            padding: 8px 16px;
+        menuItem.textContent = item.text;        menuItem.style.cssText = `
+            padding: 6px 12px;
             cursor: pointer;
             transition: background 0.2s;
         `;
@@ -525,13 +615,11 @@ function showContextMenu(x, y) {
 function showResizeSubMenu(x, y) {
     // 移除现有菜单
     const existingMenu = document.querySelector('.context-menu');
-    if (existingMenu) existingMenu.remove();
-    
-    // 计算子菜单位置 - 右上角展开
+    if (existingMenu) existingMenu.remove();    // 计算子菜单位置 - 从鼠标位置向右上角展开，减少偏移
     const subMenuWidth = 180;
     const subMenuHeight = 120; // 子菜单大致高度（3个选项）
-    const offsetX = 15; // 向右偏移更多，避免重叠
-    const offsetY = -subMenuHeight - 15; // 向上偏移整个子菜单高度
+    const offsetX = 5; // 向右偏移少量，避免重叠
+    const offsetY = 0; // 无垂直偏移，直接从鼠标位置开始
     
     const subMenuX = x + offsetX;
     const subMenuY = y + offsetY;
@@ -545,16 +633,15 @@ function showResizeSubMenu(x, y) {
         background: rgba(25, 25, 25, 0.96) !important;
         backdrop-filter: blur(12px);
         border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 8px;
-        padding: 8px 0;
+        border-radius: 6px;
+        padding: 4px 0;
         min-width: ${subMenuWidth}px;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
         z-index: 1001;
         font-family: 'Microsoft YaHei', Arial, sans-serif;
-        font-size: 15px;
-        color: white !important;
+        font-size: 13px;        color: white !important;
         -webkit-app-region: no-drag;
-        transform-origin: bottom left;
+        transform-origin: top left;
         animation: menuSlideInFromTopRight 0.2s ease-out;
     `;
     const sizes = [
@@ -565,7 +652,7 @@ function showResizeSubMenu(x, y) {
     sizes.forEach(size => {
         const item = document.createElement('div');
         item.textContent = size.label;
-        item.style.cssText = `padding: 8px 20px; cursor: pointer; transition: background 0.2s;`;
+        item.style.cssText = `padding: 6px 16px; cursor: pointer; transition: background 0.2s;`;
         item.addEventListener('mouseenter', () => {
             item.style.background = 'rgba(100, 149, 237, 0.3)';
         });
@@ -701,72 +788,118 @@ function onModelClick(event) {
     console.log('模型被点击');
 }
 
-// 添加键盘快捷键支持
-function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', (e) => {
-        // 组合键检测
-        const isCtrlPressed = e.ctrlKey;
-        const isAltPressed = e.altKey;
-        const isShiftPressed = e.shiftKey;
+// 显示随机加载GIF动画
+function showLoadingGif() {
+    // 随机选择一个GIF
+    const gifs = ['./public/assets/IamComing.gif', './public/assets/IamComing2.gif'];
+    const randomGif = gifs[Math.floor(Math.random() * gifs.length)];
+    
+    // 记录GIF显示开始时间
+    window.gifStartTime = Date.now();
+    
+    // 创建加载GIF容器
+    let loadingGifContainer = document.getElementById('loading-gif-container');
+    if (!loadingGifContainer) {
+        loadingGifContainer = document.createElement('div');
+        loadingGifContainer.id = 'loading-gif-container';
+        loadingGifContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        `;
+        document.body.appendChild(loadingGifContainer);
+    }
+    
+    // 创建GIF图像
+    const gifImg = document.createElement('img');
+    gifImg.src = randomGif;
+    gifImg.style.cssText = `
+        max-width: 300px;
+        max-height: 300px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    `;
+    
+    // 添加加载错误处理
+    gifImg.onerror = () => {
+        console.error('GIF加载失败:', randomGif);
+        // 如果GIF加载失败，显示文字提示
+        const textDiv = document.createElement('div');
+        textDiv.style.cssText = `
+            color: white;
+            font-size: 18px;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            text-align: center;
+        `;
+        textDiv.textContent = '🎭 正在加载Live2D模型...';
+        loadingGifContainer.innerHTML = '';
+        loadingGifContainer.appendChild(textDiv);
+    };
+    
+    gifImg.onload = () => {
+        console.log(`GIF加载成功: ${randomGif}`);
+    };
+    
+    // 清空容器并添加新的GIF
+    loadingGifContainer.innerHTML = '';
+    loadingGifContainer.appendChild(gifImg);
+    
+    console.log(`正在显示加载动画: ${randomGif}`);
+    
+    return loadingGifContainer;
+}
+
+// 隐藏加载GIF动画
+function hideLoadingGif(onComplete) {
+    const loadingGifContainer = document.getElementById('loading-gif-container');
+    if (loadingGifContainer) {
+        // 计算已经显示的时间
+        const elapsedTime = Date.now() - (window.gifStartTime || 0);
+        const minDisplayTime = 2400; // 最小显示时间2400ms
         
-        switch (e.code) {
-            case 'Space':
-                if (!isCtrlPressed && !isAltPressed) {
-                    e.preventDefault();
-                    playRandomMotion();
-                    showToast('🎭 播放随机动画');
-                }
-                break;
-                  case 'KeyC':
-                if (isCtrlPressed && !isAltPressed) {
-                    e.preventDefault();
-                    playStartupAnimation();
-                    showToast('🎉 播放欢迎动画');
-                }
-                break;
+        // 如果显示时间不足2400ms，则等待剩余时间
+        const remainingTime = Math.max(0, minDisplayTime - elapsedTime);
+        
+        console.log(`GIF已显示 ${elapsedTime}ms，还需等待 ${remainingTime}ms`);
+        
+        setTimeout(() => {
+            if (loadingGifContainer && loadingGifContainer.parentNode) {
+                loadingGifContainer.style.opacity = '1';
+                loadingGifContainer.style.transition = 'opacity 0.5s ease-out';
+                loadingGifContainer.style.opacity = '0';
                 
-            case 'KeyT':
-                if (isCtrlPressed && !isAltPressed) {
-                    e.preventDefault();
-                    toggleAlwaysOnTop();
-                }
-                break;
-                
-            case 'F5':
-                if (!isCtrlPressed && !isAltPressed) {
-                    e.preventDefault();
-                    location.reload();
-                }
-                break;
-                
-            case 'Escape':
-                if (!isCtrlPressed && !isAltPressed) {
-                    e.preventDefault();
-                    ipcRenderer.invoke('minimize-app');
-                }
-                break;
-                
-            case 'F4':
-                if (isAltPressed) {
-                    e.preventDefault();
-                    ipcRenderer.invoke('close-app');
-                }
-                break;
+                setTimeout(() => {
+                    if (loadingGifContainer.parentNode) {
+                        loadingGifContainer.parentNode.removeChild(loadingGifContainer);
+                    }
+                    console.log('加载动画已隐藏');
+                    
+                    // 如果有回调函数，则执行
+                    if (typeof onComplete === 'function') {
+                        onComplete();
+                    }
+                }, 500);
+            }
+        }, remainingTime);
+    } else {
+        // 如果没有找到容器，直接执行回调
+        if (typeof onComplete === 'function') {
+            onComplete();
         }
-    });
-      console.log('键盘快捷键已启用:');
-    console.log('- 空格键: 播放随机动画');
-    console.log('- Ctrl+C: 播放欢迎动画');
-    console.log('- Ctrl+T: 切换置顶');
-    console.log('- F5: 重载应用');
-    console.log('- Esc: 最小化');
-    console.log('- Alt+F4: 关闭应用');
+    }
 }
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
     init();
-    setupKeyboardShortcuts();
 });
 
 // 错误处理

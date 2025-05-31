@@ -1,8 +1,0 @@
-<!-- 简单的SVG图标 -->
-<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="32" cy="32" r="30" fill="#FFB6C1" stroke="#FF69B4" stroke-width="2"/>
-  <circle cx="22" cy="26" r="4" fill="#000"/>
-  <circle cx="42" cy="26" r="4" fill="#000"/>
-  <path d="M 20 40 Q 32 50 44 40" stroke="#000" stroke-width="2" fill="none"/>
-  <text x="32" y="15" text-anchor="middle" font-family="Arial" font-size="8" fill="#FF1493">Live2D</text>
-</svg>

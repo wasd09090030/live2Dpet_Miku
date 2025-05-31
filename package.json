@@ -26,7 +26,7 @@
   },
   "build": {
     "appId": "com.example.live2d-desktop-pet",
-    "productName": "Live2D Desktop Pet",
+    "productName": "MikuPet",
     "directories": {
       "output": "dist"
     },

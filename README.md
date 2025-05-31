@@ -1,114 +1,98 @@
-# Live2D 桌面宠物应用
+# MikuPet - Live2D 桌面宠物
 
-一个使用 Electron、Cubism 4 和 pixi-live2d-display 构建的桌面宠物应用。
+使用 Electron 构建的 Miku Live2D 桌面宠物应用，具备智能动画系统和实用的时间管理功能。
 
-## 功能特性
+## 主要功能
 
-- ✨ Live2D 模型显示和动画播放
-- 🖱️ 鼠标交互和模型点击响应
-- 👁️ 鼠标跟随视线效果
-- 🎭 随机动画播放
-- 🪟 透明无边框窗口
-- 📌 始终置顶显示
-- 🎯 可拖拽窗口
+✨ **Live2D 模型展示** - 流畅的初音未来模型显示和动画播放  
+📝 **智能待办事项** - 带时间提醒的 TodoList 管理  
+🎬 **优化动画系统** - 三层动画速度控制，自然流畅  
+🖱️ **互动体验** - 点击交互、视线跟随、右键菜单  
+🪟 **窗口管理** - 透明无边框、置顶显示、尺寸调整  
 
 ## 项目结构
 
 ```
 Live2Dpet/
 ├── main.js              # Electron 主进程
-├── index.html           # 渲染页面
-├── renderer.js          # 渲染进程逻辑
-├── package.json         # 项目配置
-├── Model/               # Live2D 模型文件
-│   └── 21miku_normal_3.0_f_t03/
-│       ├── *.model3.json    # 模型配置文件
-│       ├── *.moc3           # 模型数据
-│       ├── *.physics3.json  # 物理参数
-│       ├── textures/        # 贴图文件
-│       └── motions/         # 动作文件
+├── index.html           # 主页面和样式引用
+├── renderer.js          # Live2D 渲染和交互逻辑
+├── todolist.js          # 待办事项功能
+├── todolist.css         # 待办事项样式
+├── package.json         # 项目配置 (productName: "MikuPet")
+├── Model/21miku_normal_3.0_f_t03/  # Live2D 模型资源
 └── public/
-    └── live2dcubismcore.min.js  # Live2D Core 库
+    ├── assets/icon.png  # 应用图标
+    └── live2dcubismcore.min.js
 ```
 
-## 安装和运行
+## 快速开始
 
-1. 安装依赖：
 ```bash
+# 安装依赖
 npm install
-```
 
-2. 开发模式运行：
-```bash
+# 开发模式
 npm run dev
-```
 
-3. 生产模式运行：
-```bash
+# 生产模式
 npm start
 ```
 
-4. 构建应用：
-```bash
-npm run build
-```
+## 核心特性
+
+### 🎭 动画系统
+- **启动欢迎**: 随机握手动作 + 微笑表情 (70% 速度)
+- **待机循环**: 每12秒自动播放待机动画 (60% 速度)  
+- **交互响应**: 点击触发随机动画 + Toast 提示 (80% 速度)
+
+### 📝 TodoList 功能
+- **时间管理**: 添加待办事项和提醒时间
+- **智能提醒**: 5分钟前自动提醒 + 动画响应
+- **本地存储**: 数据持久化保存
+- **滚动支持**: 自定义滚动条和鼠标滚轮
+
+### 🎮 交互控制
+- **右键菜单**: 
+  - 📝 待办事项管理
+  - 📏 调整模型大小 (300×400 / 400×500 / 500×600)
+  - 📌 切换置顶状态
+  - ➖ 最小化 / ❌ 关闭应用
+- **视线跟随**: 鼠标移动时模型视线跟随
+- **窗口拖拽**: 透明窗口可拖拽移动
 
 ## 技术栈
 
-- **Electron**: 跨平台桌面应用框架
-- **PIXI.js 6.x**: 2D 渲染引擎
-- **pixi-live2d-display**: Live2D 模型显示库
-- **Live2D Cubism Core**: Live2D 核心运行时
-
-## 使用说明
-
-1. 启动应用后，Live2D 模型会显示在屏幕右下角
-2. 鼠标悬停在窗口上会显示控制按钮
-3. 点击模型可以触发随机动画
-4. 鼠标移动时模型会跟随鼠标视线
-5. 模型会定期播放待机动画
-
-## 控制功能
-
-- **最小化按钮**: 最小化窗口到任务栏
-- **关闭按钮**: 完全退出应用
-- **拖拽**: 可以拖拽窗口改变位置
-- **点击**: 点击模型播放随机动画
-
-## 自定义模型
-
-要使用其他 Live2D 模型，请：
-
-1. 将模型文件放在 `Model/` 目录下
-2. 修改 `renderer.js` 中的模型路径：
-```javascript
-const modelUrl = './Model/你的模型文件夹/模型文件.model3.json';
-```
+- **Electron** - 跨平台桌面应用
+- **PIXI.js 6.x** - 2D 渲染引擎  
+- **pixi-live2d-display** - Live2D 模型支持
+- **Live2D Cubism Core 4** - 核心运行时
 
 ## 开发说明
 
-### 主要文件说明
+### 核心文件
+- `renderer.js` - Live2D 渲染、动画控制、交互处理
+- `todolist.js` - 待办事项逻辑 (已提取CSS到独立文件)
+- `todolist.css` - 待办事项样式 (280行+，使用 !important 确保样式优先级)
 
-- `main.js`: 控制应用生命周期、窗口创建和系统交互
-- `renderer.js`: 处理 Live2D 模型加载、动画播放和用户交互
-- `index.html`: 定义用户界面和样式
+### 添加新动画
+```javascript
+// 在 playRandomMotion() 中添加新动画
+const newMotions = ['w-new-motion-name'];
+const newExpressions = ['face_new_expression'];
+const newToastMessages = ['新的提示信息'];
+```
 
-### 添加新功能
+### 自定义模型
+替换 `Model/` 目录下的模型文件，并修改 `renderer.js` 中的模型路径。
 
-1. **新动画**: 在 `playRandomMotion()` 函数中添加动画逻辑
-2. **新交互**: 在 `setupInteraction()` 函数中添加事件监听
-3. **UI 改进**: 修改 `index.html` 中的样式和布局
+## 许可证
 
-## 常见问题
+MIT License
 
-### Q: 模型不显示？
-A: 检查模型文件路径是否正确，确保所有必要文件都存在。
+## 贡献
 
-### Q: 动画不播放？
-A: 确保模型的 motion 文件存在且格式正确。
-
-### Q: 应用无法启动？
-A: 检查 Node.js 和 npm 版本，确保所有依赖都已正确安装。
+欢迎提交 Issue 和 Pull Request！
 
 ## 许可证
 

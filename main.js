@@ -11,15 +11,14 @@ function createWindow() {
   // 窗口尺寸
   const windowWidth = 400;
   const windowHeight = 500;
-  
-  // 计算窗口位置：放在右侧，垂直在任务栏正上方
-  const windowX = screenWidth - windowWidth - 20; // 右侧，留20px边距
-  const windowY = screenHeight - windowHeight + 80; // 紧贴工作区底部（任务栏上方）
+    // 计算窗口位置：放在右侧，垂直在任务栏正上方
+  const windowX = screenWidth - windowWidth - 60; // 右侧，留20px边距
+  const windowY = screenHeight - windowHeight + 60; // 紧贴工作区底部（任务栏上方）
     // 创建主窗口
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    icon: path.join(__dirname, 'icon.svg'), // 设置应用图标
+    icon: path.join(__dirname, 'public', 'assets', 'icon.png'), // 设置应用图标
     x: windowX, // 右侧位置
     y: windowY, // 任务栏正上方
     frame: false, // 无边框窗口
