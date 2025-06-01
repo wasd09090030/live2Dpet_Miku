@@ -22,7 +22,7 @@ Live2Dpet/
 ├── package.json         # 项目配置 (productName: "MikuPet")
 ├── Model/21miku_normal_3.0_f_t03/  # Live2D 模型资源
 └── public/
-    ├── assets/icon.png  # 应用图标
+    ├── assets/ico  # 应用图标
     └── live2dcubismcore.min.js
 ```
 
