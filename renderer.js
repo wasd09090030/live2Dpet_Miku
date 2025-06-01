@@ -23,9 +23,54 @@ ipcRenderer.on('resize-model', (event, width, height) => {
 let app, model, stage;
 let isModelLoaded = false;
 
+// 鼠标穿透控制函数
+function setMouseTransparent(transparent) {
+    ipcRenderer.invoke('set-mouse-transparent', transparent, { forward: true })
+        .then(result => {
+            console.log(`鼠标穿透设置${transparent ? '启用' : '禁用'}:`, result);
+        })
+        .catch(error => {
+            console.error('设置鼠标穿透失败:', error);
+        });
+}
+
+// 检查鼠标是否在中心交互区域（窗口中间1/2 * 1/2区域）
+function isMouseInInteractionArea(clientX, clientY) {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    // 计算中心区域边界（1/2 width * 1/2 height）
+    const centerAreaWidth = windowWidth / 2;
+    const centerAreaHeight = windowHeight / 2;
+    const centerAreaLeft = (windowWidth - centerAreaWidth) / 2;
+    const centerAreaTop = (windowHeight - centerAreaHeight) / 2;
+    const centerAreaRight = centerAreaLeft + centerAreaWidth;
+    const centerAreaBottom = 2*centerAreaTop + centerAreaHeight;
+    
+    return clientX >= centerAreaLeft && 
+           clientX <= centerAreaRight && 
+           clientY >= centerAreaTop && 
+           clientY <= centerAreaBottom;
+}
+
+// 播放语音文件的函数
+function playAudio(audioPath) {
+    try {
+        const audio = new Audio(audioPath);
+        audio.volume = 0.7; // 设置音量为70%
+        audio.play().catch(error => {
+            console.warn('播放语音失败:', error);
+        });
+        console.log('播放语音:', audioPath);
+    } catch (error) {
+        console.error('创建音频对象失败:', error);
+    }
+}
+
 // 暴露到全局作用域以便调试
 window.playRandomMotion = playRandomMotion;
 window.playIdleAnimation = playIdleAnimation;
+window.playAudio = playAudio;
 
 // 初始化应用
 async function init() {
@@ -286,9 +331,11 @@ function playStartupAnimation() {
                 console.log(`表情切换到: ${randomSmile}`);
             }
         }, 1200);
+          // 显示欢迎提示
+        showToast(`❤️今天也要加油哟！~`);
         
-        // 显示欢迎提示
-        showToast(`😊 你好吖！~`);
+        // 播放早安语音
+        playAudio('public/assets/goodDay.mp3');
         
         // 2.5秒后恢复正常表情，为切换到待机状态做准备
         setTimeout(() => {
@@ -444,7 +491,7 @@ function playRandomMotion() {
             '😊 脸红红的~',          // w-adult02-blushed
             '有什么事吗？',    // w-adult01-nod
             '好的好的😖~',          // w-adult02-nod
-            '哈咯哈咯！💕',        // w-happy02-shakehand
+            '哈喽哈喽！💕',        // w-happy02-shakehand
             '🥰 最喜欢你了！💕',          // w-happy01-shakehand
             '💕💕💕~',         // w-cool01-shakehand
             '😴 好困呀，要睡觉了...', // w-cute01-sleep05B
@@ -488,6 +535,32 @@ function setupInteraction() {
     const canvas = document.getElementById('canvas');
     const app = document.getElementById('app');
     
+    let isMouseInCenter = false;
+    let lastTransparentState = null;
+    
+    // 设置鼠标穿透状态（避免重复设置）
+    function updateMouseTransparent(transparent) {
+        if (lastTransparentState !== transparent) {
+            lastTransparentState = transparent;
+            setMouseTransparent(transparent);
+        }
+    }
+    
+    // 全局鼠标移动监听器，用于检测是否在中心交互区域
+    document.addEventListener('mousemove', (e) => {
+        const isInCenter = isMouseInInteractionArea(e.clientX, e.clientY);
+        
+        if (isInCenter && !isMouseInCenter) {
+            isMouseInCenter = true;
+            console.log('鼠标进入中心交互区域，禁用穿透');
+            updateMouseTransparent(false);
+        } else if (!isInCenter && isMouseInCenter) {
+            isMouseInCenter = false;
+            console.log('鼠标离开中心交互区域，启用穿透');
+            updateMouseTransparent(true);
+        }
+    });
+    
     // 模型交互事件（仅在canvas上）
     canvas.addEventListener('mousedown', onModelPointerDown);
     canvas.addEventListener('mousemove', onModelPointerMove);
@@ -520,13 +593,16 @@ function setupInteraction() {
 
 // 显示右键菜单
 function showContextMenu(x, y) {
+    // 显示菜单时禁用穿透
+    console.log('显示右键菜单，禁用穿透');
+    setMouseTransparent(false);
+    
     // 移除现有菜单
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
         existingMenu.remove();
     }    // 计算菜单位置 - 直接从鼠标位置向右上角展开
     const menuWidth = 150;
-    const menuHeight = 240; // 菜单大致高度
     const offsetX = 0; // 无水平偏移，直接从鼠标位置开始
     const offsetY = 0; // 无垂直偏移，直接从鼠标位置开始
     
@@ -599,13 +675,17 @@ function showContextMenu(x, y) {
     });
     
     document.body.appendChild(menu);
-    
-    // 点击其他地方关闭菜单
+      // 点击其他地方关闭菜单
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
             if (!menu.contains(e.target)) {
                 menu.remove();
                 document.removeEventListener('click', closeMenu);
+                
+                // 菜单关闭后，根据鼠标位置恢复穿透状态
+                console.log('右键菜单关闭，恢复穿透控制');
+                const isInCenter = isMouseInInteractionArea(e.clientX, e.clientY);
+                setMouseTransparent(!isInCenter);
             }
         });
     }, 100);
@@ -613,9 +693,13 @@ function showContextMenu(x, y) {
 
 // 新增：显示调整模型大小的子菜单
 function showResizeSubMenu(x, y) {
+    // 显示子菜单时禁用穿透
+    console.log('显示尺寸调整子菜单，禁用穿透');
+    setMouseTransparent(false);
+    
     // 移除现有菜单
     const existingMenu = document.querySelector('.context-menu');
-    if (existingMenu) existingMenu.remove();    // 计算子菜单位置 - 从鼠标位置向右上角展开，减少偏移
+    if (existingMenu) existingMenu.remove();// 计算子菜单位置 - 从鼠标位置向右上角展开，减少偏移
     const subMenuWidth = 180;
     const subMenuHeight = 120; // 子菜单大致高度（3个选项）
     const offsetX = 5; // 向右偏移少量，避免重叠
@@ -664,13 +748,17 @@ function showResizeSubMenu(x, y) {
             subMenu.remove();
         });
         subMenu.appendChild(item);
-    });
-    document.body.appendChild(subMenu);
+    });    document.body.appendChild(subMenu);
     setTimeout(() => {
         document.addEventListener('click', function closeMenu(e) {
             if (!subMenu.contains(e.target)) {
                 subMenu.remove();
                 document.removeEventListener('click', closeMenu);
+                
+                // 子菜单关闭后，根据鼠标位置恢复穿透状态
+                console.log('尺寸调整子菜单关闭，恢复穿透控制');
+                const isInCenter = isMouseInInteractionArea(e.clientX, e.clientY);
+                setMouseTransparent(!isInCenter);
             }
         });
     }, 100);

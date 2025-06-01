@@ -18,7 +18,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    icon: path.join(__dirname, 'public', 'assets', 'icon.png'), // 设置应用图标
+    icon: path.join(__dirname, 'public', 'assets', 'favicon.ico'), // 设置应用图标
     x: windowX, // 右侧位置
     y: windowY, // 任务栏正上方
     frame: false, // 无边框窗口
@@ -53,14 +53,13 @@ function createWindow() {
       `);
     }, 500);
   });
-
   // 开发模式下打开调试工具
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
 
-  // 窗口设置为不可移动，但保持鼠标交互
-  mainWindow.setIgnoreMouseEvents(false);
+  // 设置初始鼠标穿透状态（默认启用穿透，但保留事件转发）
+  mainWindow.setIgnoreMouseEvents(true, { forward: true });
 }
 
 // 应用准备就绪时创建窗口
@@ -111,6 +110,16 @@ ipcMain.handle('get-window-info', () => {
     isMaximized: mainWindow.isMaximized(),
     isMinimized: mainWindow.isMinimized()
   };
+});
+
+// 新增：动态控制鼠标穿透
+ipcMain.handle('set-mouse-transparent', (event, transparent, options = {}) => {
+  if (mainWindow) {
+    mainWindow.setIgnoreMouseEvents(transparent, options);
+    console.log(`鼠标穿透状态设置为: ${transparent}`);
+    return true;
+  }
+  return false;
 });
 
 ipcMain.handle('resize-app-window', (event, width, height) => {

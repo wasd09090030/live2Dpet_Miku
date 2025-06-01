@@ -1,24 +1,22 @@
 /* TodoList 待办事项样式文件 */
 
-/* 遮罩层 */
+/* 强制pointer-events设置，确保透明度控制正常工作 */
 .todo-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: transparent !important;
-    z-index: 2999;
-    animation: fadeIn 0.3s ease;
+    pointer-events: auto !important;
 }
 
 /* 主面板 */
 .todo-panel {
     position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 260px;
-    max-height: 415px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50vw; /* 动态设置为窗口宽度的一半 */
+    height: 50vh; /* 动态设置为窗口高度的一半 */
+    max-width: 500px; /* 设置最大宽度限制 */
+    max-height: 600px; /* 设置最大高度限制 */
+    min-width: 300px; /* 设置最小宽度 */
+    min-height: 300px; /* 设置最小高度 */
     background: #ffffff !important;
     border-radius: 12px;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
@@ -26,24 +24,30 @@
     font-family: 'Microsoft YaHei', Arial, sans-serif;
     overflow: hidden;
     border: 2px solid #e0e6ed !important;
-    animation: slideInFromTop 0.3s ease;
+    animation: zoomIn 0.3s ease;
+    pointer-events: auto !important;
+    display: flex;
+    flex-direction: column;
+}
+
+.todo-panel * {
+    pointer-events: auto !important;
 }
 
 /* 头部区域 */
 .todo-header {
+    flex-shrink: 0; /* 防止被压缩 */
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
-    padding: 12px 16px;
+    padding: 8px 16px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
+    position: relative;
 }
 
 .todo-header h3 {
-    margin: 0;
-    font-size: 13px;
-    color: white !important;
-    background: transparent !important;
+    display: none; /* 隐藏标题，只显示关闭按钮 */
 }
 
 /* 关闭按钮 */
@@ -51,15 +55,16 @@
     background: none !important;
     border: none;
     color: white !important;
-    font-size: 13px;
+    font-size: 16px;
     cursor: pointer;
-    padding: 3px;
+    padding: 8px;
     border-radius: 50%;
-    width: 23px;
-    height: 23px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
 }
 
 .close-btn:hover {
@@ -68,15 +73,20 @@
 
 /* 添加表单区域 */
 .todo-add-form {
-    padding: 16px;
+    flex-shrink: 0; /* 防止被压缩 */
+    padding: 12px 20px;
     border-bottom: 1px solid #e0e6ed;
     background: #ffffff !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .todo-add-form input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 8px;
+    width: 70%;
+    max-width: 300px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
     border: 2px solid #e0e6ed;
     border-radius: 6px;
     font-size: 13px;
@@ -108,6 +118,8 @@
 }
 
 .input-error-message {
+    width: 70%;
+    max-width: 300px;
     color: #ff4757 !important;
     font-size: 11px;
     margin-top: 4px;
@@ -118,12 +130,14 @@
     border-left: 3px solid #ff4757;
     display: none;
     animation: shake 0.3s ease-in-out;
+    box-sizing: border-box;
 }
 
 /* 添加按钮 */
 .todo-add-form button {
-    width: 100%;
-    padding: 10px;
+    width: 60%;
+    max-width: 200px;
+    padding: 8px 16px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
     border: none;
@@ -140,7 +154,7 @@
 
 /* 待办事项列表容器 */
 .todo-list {
-    max-height: 280px;
+    flex: 1; /* 自动占用剩余空间 */
     overflow-y: auto !important;
     overflow-x: hidden !important;
     padding: 8px 16px;
@@ -283,7 +297,7 @@
 
 /* 统计区域 */
 .todo-stats {
-    padding: 12px 16px;
+    padding: 8px 16px;
     background: #f8f9fa !important;
     font-size: 11px;
     color: #666 !important;
@@ -344,6 +358,17 @@
     }
     to {
         opacity: 1;
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.7);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 

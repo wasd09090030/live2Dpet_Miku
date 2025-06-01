@@ -83,7 +83,13 @@ class TodoList {
             }
         }
     }    // 显示待办事项面板
-    showTodoPanel() {
+    async showTodoPanel() {
+        // 显示TodoList时禁用穿透
+        console.log('显示TodoList面板，禁用穿透');
+        if (typeof ipcRenderer !== 'undefined') {
+            await ipcRenderer.invoke('set-mouse-transparent', false, { forward: true });
+        }
+        
         // 移除现有面板
         const existingPanel = document.querySelector('.todo-panel');
         if (existingPanel) {
@@ -92,19 +98,25 @@ class TodoList {
             if (existingOverlay) {
                 existingOverlay.remove();
             }
+            // 如果面板已存在则关闭，恢复穿透控制
+            console.log('关闭已存在的TodoList面板，恢复穿透控制');
+            this.restoreMouseTransparency();
             return;
-        }        // 创建背景遮罩（移除阴影，保持透明）
+        }
+
+        // 创建背景遮罩
         const overlay = document.createElement('div');
         overlay.className = 'todo-overlay';
         overlay.onclick = () => this.closeTodoPanel();
+        overlay.style.pointerEvents = 'auto';
 
         const panel = document.createElement('div');
         panel.className = 'todo-panel';
-        panel.innerHTML = `
+        panel.style.pointerEvents = 'auto';        panel.innerHTML = `
             <div class="todo-header">
-                <h3>📝 待办事项</h3>
                 <button class="close-btn" onclick="todoList.closeTodoPanel()">✕</button>
-            </div>            <div class="todo-add-form">
+            </div>
+            <div class="todo-add-form">
                 <input type="text" id="todo-title" placeholder="输入待办事项..." maxlength="50">
                 <div class="input-error-message" id="title-error"></div>
                 <input type="datetime-local" id="todo-datetime">
@@ -116,16 +128,29 @@ class TodoList {
             </div>
             <div class="todo-stats">
                 <span id="todo-stats-text">正在加载...</span>
-            </div>        `;
+            </div>
+        `;
 
         document.body.appendChild(overlay);
         document.body.appendChild(panel);
+        
+        // 确保所有交互元素的pointer-events正确设置
+        const allElements = panel.querySelectorAll('*');
+        allElements.forEach(element => {
+            if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || 
+                element.classList.contains('close-btn') || element.classList.contains('todo-delete') ||
+                element.classList.contains('todo-checkbox')) {
+                element.style.pointerEvents = 'auto';
+            }
+        });
         
         // 设置默认时间为当前时间+1小时
         const now = new Date();
         now.setHours(now.getHours() + 1);
         const datetimeInput = document.getElementById('todo-datetime');
-        datetimeInput.value = now.toISOString().slice(0, 16);        this.updateTodoDisplay();
+        datetimeInput.value = now.toISOString().slice(0, 16);
+
+        this.updateTodoDisplay();
 
         // 聚焦到标题输入框
         setTimeout(() => {
@@ -150,7 +175,14 @@ class TodoList {
                 }
             });
         }, 100);
-    }    // 关闭待办事项面板
+        
+        // 双重保险：再次确保透明度已禁用
+        setTimeout(() => {
+            if (typeof ipcRenderer !== 'undefined') {
+                ipcRenderer.invoke('set-mouse-transparent', false, { forward: true });
+            }
+        }, 100);
+    }// 关闭待办事项面板
     closeTodoPanel() {
         const panel = document.querySelector('.todo-panel');
         const overlay = document.querySelector('.todo-overlay');
@@ -162,9 +194,48 @@ class TodoList {
                 if (overlay) {
                     overlay.remove();
                 }
+                // 面板关闭后恢复穿透控制
+                console.log('TodoList面板关闭，恢复穿透控制');
+                this.restoreMouseTransparency();
             }, 300);
         } else if (overlay) {
             overlay.remove();
+            // 面板关闭后恢复穿透控制
+            console.log('TodoList面板关闭，恢复穿透控制');
+            this.restoreMouseTransparency();
+        }
+    }
+
+    // 恢复鼠标穿透状态，根据当前鼠标位置决定
+    restoreMouseTransparency() {
+        if (typeof ipcRenderer !== 'undefined') {
+            // 获取当前鼠标位置
+            const mouseEvent = new Promise((resolve) => {
+                const handler = (e) => {
+                    document.removeEventListener('mousemove', handler);
+                    resolve(e);
+                };
+                document.addEventListener('mousemove', handler);
+                
+                // 如果没有鼠标移动事件，默认启用穿透
+                setTimeout(() => {
+                    document.removeEventListener('mousemove', handler);
+                    resolve(null);
+                }, 100);
+            });
+
+            mouseEvent.then((e) => {
+                if (e && typeof isMouseInInteractionArea === 'function') {
+                    const isInCenter = isMouseInInteractionArea(e.clientX, e.clientY);
+                    const shouldBeTransparent = !isInCenter;
+                    ipcRenderer.invoke('set-mouse-transparent', shouldBeTransparent, { forward: true });
+                    console.log(`根据鼠标位置恢复穿透状态: ${shouldBeTransparent ? '启用' : '禁用'}`);
+                } else {
+                    // 默认启用穿透
+                    ipcRenderer.invoke('set-mouse-transparent', true, { forward: true });
+                    console.log('默认启用穿透状态');
+                }
+            });
         }
     }
 
@@ -313,10 +384,21 @@ class TodoList {
             const pending = total - completed;
             statsText.textContent = `总计: ${total} | 已完成: ${completed} | 待完成: ${pending}`;
         }
-        
-        // 检查是否需要滚动条并添加视觉提示
+          // 检查是否需要滚动条并添加视觉提示
         setTimeout(() => {
             this.updateScrollIndicators();
+            
+            // 确保动态创建的交互元素有正确的pointer-events设置
+            const deleteButtons = document.querySelectorAll('.todo-delete');
+            const checkboxes = document.querySelectorAll('.todo-checkbox');
+            
+            deleteButtons.forEach(btn => {
+                btn.style.pointerEvents = 'auto';
+            });
+            
+            checkboxes.forEach(cb => {
+                cb.style.pointerEvents = 'auto';
+            });
         }, 100);
     }
     
