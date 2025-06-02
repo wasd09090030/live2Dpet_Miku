@@ -534,9 +534,10 @@ function playRandomMotion() {
 function setupInteraction() {
     const canvas = document.getElementById('canvas');
     const app = document.getElementById('app');
-    
-    let isMouseInCenter = false;
+      let isMouseInCenter = false;
     let lastTransparentState = null;
+    let lastMouseCheckTime = 0;
+    const mouseCheckThrottle = 30; // 限制检测频率为30ms一次
     
     // 设置鼠标穿透状态（避免重复设置）
     function updateMouseTransparent(transparent) {
@@ -546,19 +547,33 @@ function setupInteraction() {
         }
     }
     
-    // 全局鼠标移动监听器，用于检测是否在中心交互区域
-    document.addEventListener('mousemove', (e) => {
-        const isInCenter = isMouseInInteractionArea(e.clientX, e.clientY);
+    // 处理鼠标位置检测的通用函数
+    function handleMousePosition(x, y, source = '') {
+        const now = Date.now();
+        if (now - lastMouseCheckTime < mouseCheckThrottle) {
+            return; // 节流，避免过于频繁的检测
+        }
+        lastMouseCheckTime = now;
+        
+        const isInCenter = isMouseInInteractionArea(x, y);
         
         if (isInCenter && !isMouseInCenter) {
             isMouseInCenter = true;
-            console.log('鼠标进入中心交互区域，禁用穿透');
+            console.log(`鼠标进入中心交互区域，禁用穿透 ${source}`);
             updateMouseTransparent(false);
         } else if (!isInCenter && isMouseInCenter) {
             isMouseInCenter = false;
-            console.log('鼠标离开中心交互区域，启用穿透');
+            console.log(`鼠标离开中心交互区域，启用穿透 ${source}`);
             updateMouseTransparent(true);
         }
+    }      // 接收主进程发送的全局鼠标位置（即使窗口未被选中也能检测）
+    ipcRenderer.on('global-mouse-move', (event, mouseData) => {
+        handleMousePosition(mouseData.x, mouseData.y, '(全局检测)');
+    });
+    
+    // 保留原有的 mousemove 监听器作为备用（当窗口获得焦点时仍然有效）
+    document.addEventListener('mousemove', (e) => {
+        handleMousePosition(e.clientX, e.clientY, '(焦点检测)');
     });
     
     // 模型交互事件（仅在canvas上）

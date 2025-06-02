@@ -2,15 +2,9 @@
   "name": "live2d-desktop-pet",
   "version": "1.0.0",
   "description": "Live2D桌面宠物应用",
-  "main": "main.js",
-  "scripts": {
+  "main": "main.js",  "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:portable": "electron-builder --win portable",
-    "pack": "electron-packager . MikuPet --platform=win32 --arch=x64 --out=dist --overwrite --ignore=node_modules --ignore=dist --ignore=build --ignore=.git",
-    "dist": "npm run build:portable"
+    "dev": "electron . --dev"
   },
   "keywords": [
     "live2d",
@@ -18,87 +12,10 @@
     "desktop-pet"
   ],
   "author": "Your Name",
-  "license": "MIT",
-  "devDependencies": {
-    "electron": "^24.0.0",
-    "electron-packager": "^17.1.2"
-  },
-  "dependencies": {
+  "license": "MIT",  "devDependencies": {
+    "electron": "^24.0.0"
+  },  "dependencies": {
     "pixi-live2d-display": "^0.4.0",
     "pixi.js": "^6.5.10"
-  },
-  "build": {
-    "appId": "com.mikupet.live2d-desktop-pet",
-    "productName": "MikuPet",
-    "directories": {
-      "output": "dist",
-      "buildResources": "build"
-    },
-    "files": [
-      "**/*",
-      "!**/*.map",
-      "!src/**/*",
-      "!docs/**/*",
-      "!dist/**/*",
-      "!build/**/*",
-      "!node_modules/**/*",
-      "node_modules/pixi.js/dist/browser/pixi.min.js",
-      "node_modules/pixi-live2d-display/dist/cubism4.min.js"
-    ],
-    "extraFiles": [
-      {
-        "from": "Model",
-        "to": "Model",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "public",
-        "to": "public",
-        "filter": [
-          "**/*"
-        ]
-      }
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "public/assets/favicon.ico",
-      "requestedExecutionLevel": "asInvoker",
-      "artifactName": "${productName}-${version}-${arch}-${env.BUILD_TYPE}.${ext}",
-      "sign": false,
-      "verifyUpdateCodeSignature": false
-    },
-    "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "${productName}"
-    },
-    "mac": {
-      "target": "dmg",
-      "icon": "public/assets/favicon.ico"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "public/assets/favicon.ico"
-    }
   }
 }

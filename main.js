@@ -1,8 +1,9 @@
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, globalShortcut } = require('electron');
 const path = require('path');
 
 let mainWindow;
 let isDev = process.argv.includes('--dev');
+let globalMouseTracker = null;
 
 function createWindow() {
   // 获取屏幕尺寸
@@ -57,9 +58,11 @@ function createWindow() {
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
-
   // 设置初始鼠标穿透状态（默认启用穿透，但保留事件转发）
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
+  
+  // 启动全局鼠标位置跟踪
+  startGlobalMouseTracking();
 }
 
 // 应用准备就绪时创建窗口
@@ -133,4 +136,56 @@ ipcMain.handle('resize-app-window', (event, width, height) => {
     // 通知渲染进程调整PIXI和模型
     mainWindow.webContents.send('resize-model', width, height);
   }
+});
+
+// 全局鼠标位置跟踪
+function startGlobalMouseTracking() {
+  if (globalMouseTracker) {
+    clearInterval(globalMouseTracker);
+  }
+  
+  globalMouseTracker = setInterval(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isMinimized()) {
+      try {
+        // 获取当前鼠标位置
+        const mousePos = screen.getCursorScreenPoint();
+        const windowBounds = mainWindow.getBounds();
+        
+        // 计算相对于窗口的鼠标位置
+        const relativeX = mousePos.x - windowBounds.x;
+        const relativeY = mousePos.y - windowBounds.y;
+        
+        // 检查鼠标是否在窗口内
+        const isInWindow = relativeX >= 0 && relativeX <= windowBounds.width && 
+                          relativeY >= 0 && relativeY <= windowBounds.height;
+        
+        if (isInWindow) {
+          // 将鼠标位置发送到渲染进程（只在需要时发送）
+          mainWindow.webContents.send('global-mouse-move', {
+            x: relativeX,
+            y: relativeY,
+            screenX: mousePos.x,
+            screenY: mousePos.y,
+            windowBounds: windowBounds
+          });
+        }
+      } catch (error) {
+        // 忽略错误，可能是窗口正在销毁
+        console.log('全局鼠标跟踪暂时失败，将在下次循环重试');
+      }
+    }
+  }, 16); // 约60fps的更新频率
+}
+
+// 停止全局鼠标跟踪
+function stopGlobalMouseTracking() {
+  if (globalMouseTracker) {
+    clearInterval(globalMouseTracker);
+    globalMouseTracker = null;
+  }
+}
+
+// 应用退出时清理
+app.on('before-quit', () => {
+  stopGlobalMouseTracking();
 });
