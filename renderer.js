@@ -72,6 +72,75 @@ window.playRandomMotion = playRandomMotion;
 window.playIdleAnimation = playIdleAnimation;
 window.playAudio = playAudio;
 
+// 调试功能：动态显示状态信息
+function createDebugInfo() {
+    const debugPanel = document.createElement('div');
+    debugPanel.id = 'debug-panel';
+    debugPanel.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8) !important;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 12px;
+        max-width: 300px;
+        z-index: 1000;
+        display: none;
+        pointer-events: none;
+    `;
+    document.body.appendChild(debugPanel);
+    return debugPanel;
+}
+
+// 更新调试信息
+function updateDebugInfo() {
+    const debugPanel = document.getElementById('debug-panel');
+    if (!debugPanel || debugPanel.style.display === 'none') return;
+    
+    const info = {
+        '窗口尺寸': `${window.innerWidth}×${window.innerHeight}`,
+        '模型状态': isModelLoaded ? '已加载' : '未加载',
+        'PIXI版本': window.PIXI ? window.PIXI.VERSION : '未加载',
+        '模型位置': model ? `(${Math.round(model.x)}, ${Math.round(model.y)})` : 'N/A',
+        '模型缩放': model ? `${model.scale.x.toFixed(2)}` : 'N/A'
+    };
+    
+    debugPanel.innerHTML = Object.entries(info)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('<br>');
+}
+
+// 切换调试信息显示
+function toggleDebugInfo() {
+    let debugPanel = document.getElementById('debug-panel');
+    if (!debugPanel) {
+        debugPanel = createDebugInfo();
+    }
+    
+    const isVisible = debugPanel.style.display !== 'none';
+    debugPanel.style.display = isVisible ? 'none' : 'block';
+    
+    if (!isVisible) {
+        // 开始定期更新调试信息
+        window.debugInterval = setInterval(updateDebugInfo, 1000);
+        updateDebugInfo();
+        showToast('🐛 调试信息已开启');
+    } else {
+        // 停止更新调试信息
+        if (window.debugInterval) {
+            clearInterval(window.debugInterval);
+            window.debugInterval = null;
+        }
+        showToast('🐛 调试信息已关闭');
+    }
+}
+
+// 暴露调试功能到全局
+window.toggleDebugInfo = toggleDebugInfo;
+
 // 初始化应用
 async function init() {
     try {
@@ -319,9 +388,9 @@ function playStartupAnimation() {
         if (model.motion) {
             const motionState = model.motion(randomShakehand, 0, 3);
             // 设置动画播放速度为0.7倍（更慢）
-            if (motionState) {
-                motionState.speed = 0.7;
-            }
+//             if (motionState) {
+//                 motionState.speed = 0.7;
+//             }
         }
         
         // 延迟1200ms后播放微笑表情，让握手动作先完成更多部分
@@ -392,9 +461,9 @@ function playIdleAnimation() {
                 if (model.motion) {
                     const motionState = model.motion(currentAction.motion, 0, 2);
                     // 设置待机动画播放速度为0.6倍（更慢更自然）
-                    if (motionState) {
-                        motionState.speed = 0.6;
-                    }
+//                     if (motionState) {
+//                         motionState.speed = 0.6;
+//                     }
                 }
                 
                 // 延迟800ms后播放表情，让动作先开始更长时间
@@ -507,9 +576,9 @@ function playRandomMotion() {
         if (model.motion) {
             const motionState = model.motion(randomMotion, 0, 3); // 优先级3，确保能播放
             // 设置交互动画播放速度为0.8倍（稍慢但响应快）
-            if (motionState) {
-                motionState.speed = 0.8;
-            }
+//             if (motionState) {
+//                 motionState.speed = 0.8;
+//             }
             console.log('播放交互动画:', randomMotion);
             
             // 显示对应的Toast消息
@@ -577,23 +646,23 @@ function setupInteraction() {
     });
     
     // 模型交互事件（仅在canvas上）
-    canvas.addEventListener('mousedown', onModelPointerDown);
-    canvas.addEventListener('mousemove', onModelPointerMove);
-    canvas.addEventListener('mouseup', onModelPointerUp);
-    canvas.addEventListener('click', onModelClick);
+//     canvas.addEventListener('mousedown', onModelPointerDown);
+//     canvas.addEventListener('mousemove', onModelPointerMove);
+//     canvas.addEventListener('mouseup', onModelPointerUp);
+//     canvas.addEventListener('click', onModelClick);
     
     // 触摸事件（仅在canvas上）
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        onModelPointerDown({ clientX: touch.clientX, clientY: touch.clientY });
-    });
+//     canvas.addEventListener('touchstart', (e) => {
+//         e.preventDefault();
+//         const touch = e.touches[0];
+//         onModelPointerDown({ clientX: touch.clientX, clientY: touch.clientY });
+//     });
     
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        const touch = e.touches[0];
-        onModelPointerMove({ clientX: touch.clientX, clientY: touch.clientY });
-    });
+//     canvas.addEventListener('touchmove', (e) => {
+//         e.preventDefault();
+//         const touch = e.touches[0];
+//         onModelPointerMove({ clientX: touch.clientX, clientY: touch.clientY });
+//     });
       canvas.addEventListener('touchend', (e) => {
         e.preventDefault();
         onModelPointerUp();

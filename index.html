@@ -43,15 +43,47 @@
             background-color: transparent !important;
             -webkit-app-region: no-drag; /* 画布区域不可拖拽，用于模型交互 */
             pointer-events: auto; /* 确保canvas可以接收鼠标事件 */
-        }/* 隐藏所有UI元素，只保留模型 */
-        .drag-hint,
-        .drag-area-left,
-        .drag-area-right,
-        .controls,
-        .loading,
-        .status-bar,
-        .version-info {
-            display: none !important;
+        }        /* 加载状态样式 */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8) !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+        }
+        
+        .loading-content {
+            text-align: center;
+            background: transparent !important;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+            background: transparent !important;
+        }
+        
+        .loading-text {
+            font-size: 16px;
+            color: #ffffff;
+            background: transparent !important;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
           /* 右键菜单专用样式 - 覆盖透明背景 */
         .context-menu {
@@ -144,18 +176,17 @@
     </style>
 </head>
 <body>    <div id="app">
-        <div class="drag-hint">🖱️ 拖拽移动窗口</div>
-        <div class="drag-area-left"></div>
-        <div class="drag-area-right"></div>
-        <div class="controls">
-            <button class="control-btn minimize-btn" id="minimizeBtn" title="最小化">−</button>
-            <button class="control-btn close-btn" id="closeBtn" title="关闭">×</button>
-        </div>
-        <div class="loading" id="loading">加载中...</div>
-        <div class="status-bar">状态栏信息</div>
-        <div class="version-info">版本 1.0.0</div>
+        <!-- 核心渲染画布 -->
         <canvas id="canvas"></canvas>
-    </div>    <!-- Live2D Cubism Core必须通过script标签引入 -->
+        
+        <!-- 加载状态提示 -->
+        <div class="loading" id="loading">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">初始化Live2D模型...</div>
+            </div>
+        </div>
+    </div><!-- Live2D Cubism Core必须通过script标签引入 -->
     <script src="public/live2dcubismcore.min.js"></script>
     <!-- 引入 PIXI.js -->
     <script src="node_modules/pixi.js/dist/browser/pixi.min.js"></script>
