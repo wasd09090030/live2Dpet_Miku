@@ -1,9 +1,25 @@
 const { app, BrowserWindow, ipcMain, screen, globalShortcut } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 let mainWindow;
 let isDev = process.argv.includes('--dev');
 let globalMouseTracker = null;
+
+// 设置应用图标 - 在应用准备就绪前设置
+const iconPath = path.join(__dirname, 'favicon.ico');
+console.log('应用图标路径:', iconPath);
+
+// 验证图标文件
+if (fs.existsSync(iconPath)) {
+  console.log('图标文件验证成功');
+  // 在Windows上设置dock图标
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.live2d.desktop-pet');
+  }
+} else {
+  console.error('图标文件不存在:', iconPath);
+}
 
 function createWindow() {
   // 获取屏幕尺寸
@@ -15,11 +31,23 @@ function createWindow() {
     // 计算窗口位置：放在右侧，垂直在任务栏正上方
   const windowX = screenWidth - windowWidth - 60; // 右侧，留20px边距
   const windowY = screenHeight - windowHeight + 60; // 紧贴工作区底部（任务栏上方）
-    // 创建主窗口
+  
+  // 使用全局图标路径
+  console.log('设置应用图标路径:', iconPath);
+  
+  // 验证图标文件是否存在
+  if (!fs.existsSync(iconPath)) {
+    console.warn('图标文件不存在:', iconPath);
+  } else {
+    console.log('图标文件存在，大小:', fs.statSync(iconPath).size, 'bytes');
+  }
+  
+  // 创建主窗口
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    icon: path.join(__dirname, 'public', 'assets', 'favicon.ico'), // 设置应用图标
+    icon: iconPath, // 设置应用图标
+    title: 'Live2D Desktop Pet', // 窗口标题
     x: windowX, // 右侧位置
     y: windowY, // 任务栏正上方
     frame: false, // 无边框窗口
@@ -27,7 +55,7 @@ function createWindow() {
     alwaysOnTop: true, // 总在最上层
     resizable: false,
     movable: false, // 禁止移动窗口
-    skipTaskbar: false, // 始终显示在任务栏
+    skipTaskbar: false, // 始终显示在任务栏 - 这里图标应该会显示
     show: false, // 初始隐藏，加载完成后显示
     backgroundColor: '#00000000', // 显式设置透明背景色
     hasShadow: false, // 禁用窗口阴影
@@ -40,6 +68,13 @@ function createWindow() {
       offscreen: false // 确保不使用离屏渲染
     }
   });
+  
+  // 设置应用在任务栏和窗口管理器中的图标
+  if (process.platform === 'win32') {
+    // Windows平台额外设置
+    app.setAppUserModelId('com.live2d.desktop-pet');
+  }
+  
   // 加载页面
   mainWindow.loadFile('index.html');
   // 页面加载完成后显示窗口（确保透明度正常）

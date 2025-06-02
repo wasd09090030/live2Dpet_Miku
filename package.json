@@ -2,9 +2,37 @@
   "name": "live2d-desktop-pet",
   "version": "1.0.0",
   "description": "Live2D桌面宠物应用",
-  "main": "main.js",  "scripts": {
+  "main": "main.js",
+  "homepage": "./",
+  "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.live2d.desktop-pet",
+    "productName": "Live2D Desktop Pet",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "node_modules/pixi.js/**/*",
+      "node_modules/pixi-live2d-display/**/*"
+    ],
+    "win": {
+      "icon": "public/assets/favicon.ico",
+      "target": "nsis"
+    },
+    "mac": {
+      "icon": "public/assets/favicon.ico",
+      "target": "dmg"
+    },
+    "linux": {
+      "icon": "public/assets/favicon.ico",
+      "target": "AppImage"
+    }
   },
   "keywords": [
     "live2d",
@@ -12,9 +40,11 @@
     "desktop-pet"
   ],
   "author": "Your Name",
-  "license": "MIT",  "devDependencies": {
+  "license": "MIT",
+  "devDependencies": {
     "electron": "^24.0.0"
-  },  "dependencies": {
+  },
+  "dependencies": {
     "pixi-live2d-display": "^0.4.0",
     "pixi.js": "^6.5.10"
   }
