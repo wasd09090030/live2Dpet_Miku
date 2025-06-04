@@ -646,23 +646,23 @@ function setupInteraction() {
     });
     
     // 模型交互事件（仅在canvas上）
-//     canvas.addEventListener('mousedown', onModelPointerDown);
-//     canvas.addEventListener('mousemove', onModelPointerMove);
-//     canvas.addEventListener('mouseup', onModelPointerUp);
-//     canvas.addEventListener('click', onModelClick);
+    canvas.addEventListener('mousedown', onModelPointerDown);
+    canvas.addEventListener('mousemove', onModelPointerMove);
+    canvas.addEventListener('mouseup', onModelPointerUp);
+    canvas.addEventListener('click', onModelClick);
     
     // 触摸事件（仅在canvas上）
-//     canvas.addEventListener('touchstart', (e) => {
-//         e.preventDefault();
-//         const touch = e.touches[0];
-//         onModelPointerDown({ clientX: touch.clientX, clientY: touch.clientY });
-//     });
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        onModelPointerDown({ clientX: touch.clientX, clientY: touch.clientY });
+    });
     
-//     canvas.addEventListener('touchmove', (e) => {
-//         e.preventDefault();
-//         const touch = e.touches[0];
-//         onModelPointerMove({ clientX: touch.clientX, clientY: touch.clientY });
-//     });
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        onModelPointerMove({ clientX: touch.clientX, clientY: touch.clientY });
+    });
       canvas.addEventListener('touchend', (e) => {
         e.preventDefault();
         onModelPointerUp();
