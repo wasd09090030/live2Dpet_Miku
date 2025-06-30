@@ -848,14 +848,6 @@ function showResizeSubMenu(x, y) {
     }, 100);
 }
 
-// 居中模型
-function centerModel() {
-    if (model) {
-        model.x = 200;
-        model.y = 480;
-        console.log('模型已居中');
-    }
-}
 
 // 切换置顶状态
 async function toggleAlwaysOnTop() {

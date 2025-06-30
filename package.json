@@ -3,11 +3,14 @@
   "version": "1.0.0",
   "description": "Live2D桌面宠物应用",
   "main": "main.js",
-  "homepage": "./",
-  "scripts": {
+  "homepage": "./",  "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder"
+    "build": "electron-builder --dir",
+    "build:win": "electron-builder --win --dir",
+    "build:mac": "electron-builder --mac --dir",
+    "build:linux": "electron-builder --linux --dir",
+    "package": "powershell -ExecutionPolicy Bypass -File build.ps1"
   },
   "build": {
     "appId": "com.live2d.desktop-pet",
@@ -21,17 +24,51 @@
       "node_modules/pixi.js/**/*",
       "node_modules/pixi-live2d-display/**/*"
     ],
-    "win": {
-      "icon": "public/assets/favicon.ico",
-      "target": "nsis"
+    "extraResources": [
+      {
+        "from": "Model/",
+        "to": "Model/",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "public/",
+        "to": "public/",
+        "filter": ["**/*"]
+      }
+    ],    "win": {
+      "icon": "favicon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "forceCodeSigning": false
     },
     "mac": {
-      "icon": "public/assets/favicon.ico",
-      "target": "dmg"
+      "icon": "favicon.ico",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
     },
     "linux": {
-      "icon": "public/assets/favicon.ico",
-      "target": "AppImage"
+      "icon": "favicon.ico",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     }
   },
   "keywords": [
@@ -42,7 +79,8 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^24.0.0"
+    "electron": "^24.0.0",
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "pixi-live2d-display": "^0.4.0",
