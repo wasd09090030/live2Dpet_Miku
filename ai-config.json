@@ -1,7 +1,7 @@
 {
     "api": {
         "endpoint": "https://api.deepseek.com/v1",
-        "key": "sk-b10a20213e364bd0a6064e8dd460c1fe",
+        "key": "###",
         "model": "deepseek-chat",
         "temperature": 0.7,
         "max_tokens": 1000
