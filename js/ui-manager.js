@@ -98,7 +98,8 @@ class UIManager {
         
         const menuItems = [
             { text: '📝 待办事项', action: () => window.todoList?.showTodoPanel() },
-            { text: '📏 调整模型大小', action: () => this.showResizeSubMenu(x, y) },
+            { text: '� 聊一聊', action: () => this.showChatBubble() },
+            { text: '�📏 调整模型大小', action: () => this.showResizeSubMenu(x, y) },
             { text: '📌 切换置顶', action: () => this.toggleAlwaysOnTop() },
             { text: '➖ 最小化', action: () => require('electron').ipcRenderer.invoke('minimize-app') },
             { text: '❌ 关闭应用', action: () => require('electron').ipcRenderer.invoke('close-app') }
@@ -387,6 +388,28 @@ class UIManager {
     /**
      * 清理资源
      */
+    /**
+     * 显示聊天气泡
+     */
+    showChatBubble() {
+        console.log('打开聊天气泡');
+        // 确保鼠标不穿透
+        if (window.InteractionManager) {
+            window.InteractionManager.setMouseTransparent(false);
+        }
+        
+        // 移除现有菜单
+        this.removeExistingMenu();
+        
+        // 显示聊天界面
+        if (window.ChatBubble) {
+            window.ChatBubble.showChat();
+        } else {
+            console.error('ChatBubble模块未加载');
+            this.showToast('聊天功能暂不可用');
+        }
+    }
+
     cleanup() {
         // 清理所有 Toast
         this.activeToasts.forEach(toast => {

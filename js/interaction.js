@@ -37,8 +37,8 @@ class InteractionManager {
         const centerAreaWidth = windowWidth / 2;
         const centerAreaHeight = windowHeight / 2;
         const centerAreaLeft = (windowWidth - centerAreaWidth) / 2;
-        const centerAreaTop = (windowHeight - centerAreaHeight) / 2;
-        const centerAreaRight = centerAreaLeft + centerAreaWidth;
+        const centerAreaTop = (windowHeight - centerAreaHeight) / 2 + 50;
+        const centerAreaRight = centerAreaLeft + centerAreaWidth + 80;
         const centerAreaBottom = 2 * centerAreaTop + centerAreaHeight;
         
         return clientX >= centerAreaLeft && 

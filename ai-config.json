@@ -1,0 +1,21 @@
+{
+    "api": {
+        "endpoint": "https://api.deepseek.com/v1",
+        "key": "sk-b10a20213e364bd0a6064e8dd460c1fe",
+        "model": "deepseek-chat",
+        "temperature": 0.7,
+        "max_tokens": 1000
+    },
+    "character": {
+        "name": "Miku",
+        "personality": "友善、活泼、可爱的虚拟歌姬，说话方式像少女一样充满活力，经常使用可爱的语气词和表情",
+        "background": "是一个虚拟歌手，喜欢唱歌和与人交流，对科技和音乐有浓厚兴趣",
+        "greeting": "你好呀~我是Miku！今天想和我聊些什么呢？",
+        "response_style": "简短可爱，语气轻松活泼，偶尔加入可爱的表情"
+    },
+    "chat": {
+        "history_length": 10,
+        "typing_indicator": true,
+        "stream_response": true
+    }
+}
