@@ -10,6 +10,7 @@ class ChatBubble {
         this.isVisible = false;
         this.isProcessing = false;
         this.typingTimeout = null;
+        this._lastToastMessage = null; // 用于跟踪最后显示的消息内容
     }
 
     /**
@@ -31,10 +32,9 @@ class ChatBubble {
             left: 50%;
             transform: translate(-50%, -50%);
             width: 280px;
-            max-height: 320px;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(10px);
-            border-radius: 12px;
+            border-radius: 15px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 10px;
             display: flex;
@@ -81,53 +81,19 @@ class ChatBubble {
         // 创建标题
         const titleBar = document.createElement('div');
         titleBar.style.cssText = `
-            margin-bottom: 10px;
             text-align: center;
             font-weight: bold;
             padding: 5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 5px;
         `;
         titleBar.textContent = '与 Miku 聊天';
-
-        // 创建聊天内容区域
-        const chatContent = document.createElement('div');
-        chatContent.className = 'chat-content';
-        chatContent.style.cssText = `
-            flex-grow: 1;
-            overflow-y: auto;
-            padding: 5px;
-            margin-bottom: 10px;
-            max-height: 180px;
-            scroll-behavior: smooth;
-        `;
-
-        // 设置滚动条样式
-        const style = document.createElement('style');
-        style.textContent = `
-            .chat-content::-webkit-scrollbar {
-                width: 5px;
-            }
-            .chat-content::-webkit-scrollbar-track {
-                background: rgba(0, 0, 0, 0.1);
-                border-radius: 5px;
-            }
-            .chat-content::-webkit-scrollbar-thumb {
-                background: rgba(255, 255, 255, 0.3);
-                border-radius: 5px;
-            }
-            .chat-content::-webkit-scrollbar-thumb:hover {
-                background: rgba(255, 255, 255, 0.5);
-            }
-        `;
-        document.head.appendChild(style);
 
         // 创建输入区域
         this.inputContainer = document.createElement('div');
         this.inputContainer.style.cssText = `
             display: flex;
-            margin-top: 5px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            padding-top: 10px;
+            align-items: center;
+            padding: 5px;
         `;
 
         // 创建输入框
@@ -139,7 +105,7 @@ class ChatBubble {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 15px;
-            padding: 5px 10px;
+            padding: 8px 12px;
             color: white;
             outline: none;
             margin-right: 5px;
@@ -163,7 +129,7 @@ class ChatBubble {
             background: rgba(100, 149, 237, 0.7);
             border: none;
             border-radius: 15px;
-            padding: 5px 12px;
+            padding: 8px 15px;
             color: white;
             cursor: pointer;
             transition: background 0.2s;
@@ -183,7 +149,6 @@ class ChatBubble {
         this.inputContainer.appendChild(sendButton);
         this.chatContainer.appendChild(closeButton);
         this.chatContainer.appendChild(titleBar);
-        this.chatContainer.appendChild(chatContent);
         this.chatContainer.appendChild(this.inputContainer);
         document.body.appendChild(this.chatContainer);
 
@@ -248,13 +213,22 @@ class ChatBubble {
         const message = inputField.value.trim();
 
         if (message) {
-            // 添加用户消息到聊天
+            // 添加用户消息到历史记录
             this.addUserMessage(message);
             inputField.value = '';
+
+            // 清除上次的消息记录，开始新的对话
+            this._lastToastMessage = null;
+            if (window.UIManager) {
+                window.UIManager.clearActiveToasts();
+            }
 
             // 显示处理中状态
             this.isProcessing = true;
             this.showTypingIndicator();
+            
+            // 设置全局状态，标记AI正在响应
+            AppState.isAIResponding = true;
 
             // 发送到AI聊天处理
             if (window.AIChat) {
@@ -262,9 +236,14 @@ class ChatBubble {
                     // 移除处理中指示器
                     this.removeTypingIndicator();
                     
-                    // 添加机器人回复
+                    // 添加机器人回复（只在头顶显示Toast）
                     this.addBotMessage(response);
                     this.isProcessing = false;
+                    
+                    // AI回复结束，重置状态
+                    setTimeout(() => {
+                        AppState.isAIResponding = false;
+                    }, 5000); // 保持状态5秒，让用户有时间阅读回复
                 });
             } else {
                 // 如果AIChat不可用，显示错误
@@ -272,63 +251,34 @@ class ChatBubble {
                     this.removeTypingIndicator();
                     this.addBotMessage("抱歉，聊天功能暂不可用，请检查AI配置。");
                     this.isProcessing = false;
+                    AppState.isAIResponding = false;
                 }, 1000);
             }
         }
     }
 
     /**
-     * 添加用户消息到聊天
+     * 添加用户消息
      */
     addUserMessage(message) {
-        const chatContent = this.chatContainer.querySelector('.chat-content');
-        const messageElement = document.createElement('div');
-        messageElement.className = 'user-message';
-        messageElement.style.cssText = `
-            text-align: right;
-            margin: 5px 0;
-            padding: 5px 10px;
-            background: rgba(100, 149, 237, 0.3);
-            border-radius: 10px;
-            border-bottom-right-radius: 2px;
-            word-wrap: break-word;
-            animation: fadeIn 0.3s;
-        `;
-        messageElement.textContent = message;
-        chatContent.appendChild(messageElement);
-        chatContent.scrollTop = chatContent.scrollHeight;
-
-        // 添加到历史记录
+        // 仅添加到历史记录（用于API调用），不显示在界面上
         this.chatHistory.push({ role: 'user', content: message });
     }
 
     /**
-     * 添加机器人消息到聊天
+     * 添加机器人消息
      */
     addBotMessage(message) {
-        const chatContent = this.chatContainer.querySelector('.chat-content');
-        const messageElement = document.createElement('div');
-        messageElement.className = 'bot-message';
-        messageElement.style.cssText = `
-            text-align: left;
-            margin: 5px 0;
-            padding: 5px 10px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            border-bottom-left-radius: 2px;
-            word-wrap: break-word;
-            animation: fadeIn 0.3s;
-        `;
-        messageElement.textContent = message;
-        chatContent.appendChild(messageElement);
-        chatContent.scrollTop = chatContent.scrollHeight;
-
-        // 添加到历史记录
+        // 添加到历史记录（用于API调用）
         this.chatHistory.push({ role: 'assistant', content: message });
         
-        // 在模型头顶上方显示回复内容的Toast
-        if (window.UIManager) {
+        // 只有完整回复结束时才显示Toast（通过检查是否与上次显示的内容相同）
+        // 流式响应中的中间状态不显示
+        if (window.UIManager && (!this._lastToastMessage || message.length >= this._lastToastMessage.length)) {
+            // 清除之前的Toast，确保只显示一个
+            window.UIManager.clearActiveToasts();
             window.UIManager.showToast(message, 5000);
+            this._lastToastMessage = message;
         }
     }
 
@@ -336,41 +286,7 @@ class ChatBubble {
      * 显示正在输入指示器
      */
     showTypingIndicator() {
-        const chatContent = this.chatContainer.querySelector('.chat-content');
-        
-        // 移除现有的输入指示器
-        this.removeTypingIndicator();
-        
-        // 创建新的输入指示器
-        const indicator = document.createElement('div');
-        indicator.id = 'typing-indicator';
-        indicator.style.cssText = `
-            text-align: left;
-            margin: 5px 0;
-            padding: 8px 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            border-bottom-left-radius: 2px;
-            display: inline-block;
-        `;
-        
-        // 创建动画点
-        for (let i = 0; i < 3; i++) {
-            const dot = document.createElement('span');
-            dot.style.cssText = `
-                display: inline-block;
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                margin-right: 3px;
-                background: rgba(255, 255, 255, 0.7);
-                animation: typingAnimation 1s infinite;
-                animation-delay: ${i * 0.3}s;
-            `;
-            indicator.appendChild(dot);
-        }
-        
-        // 添加动画样式
+        // 添加动画样式，用于头顶Toast中使用
         if (!document.getElementById('typing-animation-style')) {
             const style = document.createElement('style');
             style.id = 'typing-animation-style';
@@ -388,18 +304,17 @@ class ChatBubble {
             document.head.appendChild(style);
         }
         
-        chatContent.appendChild(indicator);
-        chatContent.scrollTop = chatContent.scrollHeight;
+        // 在头顶显示思考中提示
+        if (window.UIManager) {
+            window.UIManager.showToast("思考中...", 2000);
+        }
     }
 
     /**
      * 移除正在输入指示器
      */
     removeTypingIndicator() {
-        const indicator = document.getElementById('typing-indicator');
-        if (indicator) {
-            indicator.parentNode.removeChild(indicator);
-        }
+        // 不再需要移除任何DOM元素，因为使用的是Toast
     }
 
     /**

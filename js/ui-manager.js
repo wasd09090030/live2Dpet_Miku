@@ -9,9 +9,22 @@ class UIManager {
     }
 
     /**
+     * 清除所有活动的Toast提示
+     */
+    clearActiveToasts() {
+        this.activeToasts.forEach(toast => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        });
+        this.activeToasts.clear();
+    }
+
+    /**
      * 显示 Toast 提示
      */
     showToast(message, duration = 3000) {
+        // 创建Toast元素
         const toast = document.createElement('div');
         toast.textContent = message;
         toast.style.cssText = `
@@ -31,6 +44,7 @@ class UIManager {
             pointer-events: none;
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 80%;
         `;
         
         document.body.appendChild(toast);
@@ -98,8 +112,8 @@ class UIManager {
         
         const menuItems = [
             { text: '📝 待办事项', action: () => window.todoList?.showTodoPanel() },
-            { text: '� 聊一聊', action: () => this.showChatBubble() },
-            { text: '�📏 调整模型大小', action: () => this.showResizeSubMenu(x, y) },
+            { text: 'AI聊天', action: () => this.showChatBubble() },
+            { text: '调整模型大小', action: () => this.showResizeSubMenu(x, y) },
             { text: '📌 切换置顶', action: () => this.toggleAlwaysOnTop() },
             { text: '➖ 最小化', action: () => require('electron').ipcRenderer.invoke('minimize-app') },
             { text: '❌ 关闭应用', action: () => require('electron').ipcRenderer.invoke('close-app') }

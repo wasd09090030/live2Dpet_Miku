@@ -91,13 +91,14 @@ class InteractionManager {
     }
 
     /**
-     * 模型指针按下事件
+     * 模型指针按下事件（已禁用拖拽功能）
      */
     onModelPointerDown(e) {
-        this.isDragging = true;
+        // 已禁用拖拽功能
+        // this.isDragging = true;
         this.dragOffset.x = e.clientX;
         this.dragOffset.y = e.clientY;
-        console.log('开始拖拽模型');
+        console.log('模型点击 - 拖拽功能已禁用');
     }
 
     /**

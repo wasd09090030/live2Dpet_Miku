@@ -243,9 +243,12 @@ class AnimationController {
                 AppState.model.motion(randomMotion, 0, 3);
                 console.log('播放交互动画:', randomMotion);
                 
-                // 显示对应的Toast消息
-                if (window.UIManager) {
+                // 显示对应的Toast消息（只在AI未响应时显示）
+                if (window.UIManager && !AppState.isAIResponding) {
                     window.UIManager.showToast(toastMessage);
+                    console.log('显示交互消息:', toastMessage);
+                } else if (AppState.isAIResponding) {
+                    console.log('AI响应中，跳过显示交互消息');
                 }
                 
                 // 延迟播放表情

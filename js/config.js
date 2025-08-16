@@ -19,7 +19,8 @@ const AppState = {
     lastTransparentState: null,
     lastMouseCheckTime: 0,
     idleAnimationInterval: null,
-    debugInterval: null
+    debugInterval: null,
+    isAIResponding: false // 标识AI是否正在回复中
 };
 
 // 应用配置

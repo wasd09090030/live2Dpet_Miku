@@ -243,13 +243,21 @@ class AIChat {
                             if (content) {
                                 fullResponse += content;
                                 
-                                // 第一个字符时直接调用回调
+                                // 仅在重要节点更新，减少Toast闪烁
+                                // 第一段时调用回调
                                 if (isFirstChunk) {
                                     isFirstChunk = false;
-                                    callback(content);
+                                    // 累积一点内容后再显示
+                                    if (fullResponse.length > 5) {
+                                        callback(fullResponse);
+                                    }
                                 } 
-                                // 后续字符累积到一定长度或包含标点符号时更新
-                                else if (content.match(/[,.!?;，。！？；]$/) || fullResponse.length % 10 === 0) {
+                                // 只在句子结束时才更新，避免频繁刷新
+                                else if (content.match(/[.。!！?？;；]$/)) {
+                                    callback(fullResponse);
+                                }
+                                // 或者积累了足够多的新内容才更新
+                                else if (fullResponse.length % 30 === 0) {
                                     callback(fullResponse);
                                 }
                             }
